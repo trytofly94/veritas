@@ -71,8 +71,20 @@
 
 ## Traceability
 
-| Phase | Requirements |
-|-------|-------------|
-| Phase 1 | CORE-01, CORE-02, CORE-03, CORE-04, SEC-03, META-01, META-02, META-03 |
-| Phase 2 | UPLOAD-01, UPLOAD-02, UPLOAD-03, SEC-01, SEC-02 |
-| Phase 3 | BROWSE-01, BROWSE-02 |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | Pending |
+| META-01 | Phase 1 | Pending |
+| META-02 | Phase 1 | Pending |
+| META-03 | Phase 1 | Pending |
+| UPLOAD-01 | Phase 2 | Pending |
+| UPLOAD-02 | Phase 2 | Pending |
+| UPLOAD-03 | Phase 2 | Pending |
+| SEC-01 | Phase 2 | Pending |
+| SEC-02 | Phase 2 | Pending |
+| BROWSE-01 | Phase 3 | Pending |
+| BROWSE-02 | Phase 3 | Pending |
