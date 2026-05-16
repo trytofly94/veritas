@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. When DFN-TSA is unreachable, the system automatically retries with FreeTSA and records the fallback provider in metadata.json
   4. Running verify.sh from the bundle directory exits 0 and prints a verification-success message
   5. The container starts from docker-compose up on Unraid with all data written to bind-mounted volumes — nothing stored inside the container
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 01-01-PLAN.md — Walking Skeleton: scaffold + DFN happy-path upload (hash + TSA + bundle write)
+  - [ ] 01-02-PLAN.md — TSA fallback chain (DFN→FreeTSA→DigiCert) + pre-finalization verify + verify.sh in every bundle
+  - [ ] 01-03-PLAN.md — Dockerize for Unraid (multi-stage build, bind-mounted volume, container smoke test, human-verified Unraid deploy)
 
 ### Phase 2: HTTP API + Web Upload
 **Goal**: Users can submit files from iOS Shortcuts, n8n, curl, or a browser and download a verifiable ZIP bundle — all behind API-key and session authentication
@@ -63,6 +66,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Archive Engine | 0/? | Not started | - |
+| 1. Core Archive Engine | 0/3 | Not started | - |
 | 2. HTTP API + Web Upload | 0/? | Not started | - |
 | 3. Archive Browser | 0/? | Not started | - |
