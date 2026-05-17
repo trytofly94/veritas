@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Plan 01-01 complete (walking skeleton GREEN on real DFN-TSA)
-last_updated: "2026-05-17T00:10:00.000Z"
-last_activity: 2026-05-17 -- Plan 01-01 complete
+stopped_at: Plan 01-01 complete (walking skeleton — DFN happy path GREEN)
+last_updated: "2026-05-17T00:24:51.879Z"
+last_activity: 2026-05-17
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 9
-  completed_plans: 1
-  percent: 11
+  total_plans: 3
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-16)
 ## Current Position
 
 Phase: 01 (core-archive-engine) — EXECUTING
-Plan: 2 of 3 (01-01 complete; 01-02 next)
-Status: Executing Phase 01
-Last activity: 2026-05-17 -- Plan 01-01 complete (walking skeleton GREEN)
+Plan: 3 of 3 (01-01 complete; 01-02 next)
+Status: Ready to execute
+Last activity: 2026-05-17
 
-Progress: [█░░░░░░░░░] 11%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [█░░░░░░░░░] 11%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01-02 | 30 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - TSA order: DFN-TSA primary → FreeTSA fallback → DigiCert tertiary
 - Storage: Filesystem (ULID directories) + SQLite manifest index; bind-mounted Unraid volumes
 - Docker base: node:22-bookworm-slim (NOT Alpine — lacks native module support)
+- [Phase ?]: TSA fallback chain DFN→FreeTSA→DigiCert with pre-finalization openssl ts -verify and AllTsasFailed→502 (D-05 hard-fail invariant)
+- [Phase ?]: Bundle layout finalized at 7 artifacts (verify.sh mode 555, others 444) — CORE-03/04 complete
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-17T00:10:00.000Z
+Last session: 2026-05-17T00:24:28.706Z
 Stopped at: Plan 01-01 complete (walking skeleton — DFN happy path GREEN)
-Resume file: .planning/phases/01-core-archive-engine/01-02-PLAN.md
+Resume file: None

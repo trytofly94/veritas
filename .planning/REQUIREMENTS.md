@@ -8,9 +8,9 @@
 ### Core Archive Engine
 
 - [ ] **CORE-01**: System berechnet SHA-256 Hash automatisch bei Eingang jeder Datei
-- [ ] **CORE-02**: System fordert RFC 3161 Zeitstempel von DFN-TSA an (FreeTSA als Fallback bei Fehler)
-- [ ] **CORE-03**: System speichert pro Einreichung ein strukturiertes Bundle: `original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `metadata.json`, `verify.sh`
-- [ ] **CORE-04**: System ermöglicht nachträgliche Verifikation der Dateiintegrität per OpenSSL (via `verify.sh` im Bundle)
+- [x] **CORE-02**: System fordert RFC 3161 Zeitstempel von DFN-TSA an (FreeTSA als Fallback bei Fehler)
+- [x] **CORE-03**: System speichert pro Einreichung ein strukturiertes Bundle: `original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `metadata.json`, `verify.sh`
+- [x] **CORE-04**: System ermöglicht nachträgliche Verifikation der Dateiintegrität per OpenSSL (via `verify.sh` im Bundle)
 
 ### Upload
 
@@ -27,7 +27,7 @@
 
 - [ ] **SEC-01**: Upload-Endpunkt ist per API-Key abgesichert (Header `X-API-Key`), ungültige Keys erhalten 401
 - [ ] **SEC-02**: Archiv-Browser ist per Passwort-Login abgesichert (einfache Session-Auth)
-- [ ] **SEC-03**: DFN-TSA wird primär verwendet; bei Fehler automatischer Fallback auf FreeTSA; TSA-Quelle wird im `metadata.json` gespeichert
+- [x] **SEC-03**: DFN-TSA wird primär verwendet; bei Fehler automatischer Fallback auf FreeTSA; TSA-Quelle wird im `metadata.json` gespeichert
 
 ### Metadaten
 
@@ -74,10 +74,10 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CORE-01 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Complete |
+| CORE-03 | Phase 1 | Complete |
+| CORE-04 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
 | META-01 | Phase 1 | Pending |
 | META-02 | Phase 1 | Pending |
 | META-03 | Phase 1 | Pending |
