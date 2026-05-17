@@ -7,6 +7,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 
 const FIXTURE = path.resolve(__dirname, "../fixtures/hello.txt");
 
+const TEST_API_KEY = "test-api-key-verify-script-1234567890";
+
 let server: ReturnType<typeof serve>;
 let baseUrl: string;
 let dataDir: string;
@@ -19,10 +21,21 @@ beforeAll(async () => {
   process.env.TSA_TIMEOUT_MS = "10000";
 
   dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-verify-"));
+
+  // Set auth env vars BEFORE calling loadConfig (D-06 fail-fast)
   process.env.DATA_DIR = dataDir;
+  process.env.API_KEY = TEST_API_KEY;
+  process.env.SESSION_SECRET = "test-session-secret-must-be-32-plus-bytes-long-yo";
+  process.env.ADMIN_PASSWORD = "test-pass";
+  process.env.MANIFEST_DB_PATH = path.join(dataDir, "manifest.sqlite");
 
   const { createApp } = await import("../../src/server.js");
-  const app = createApp();
+  const { loadConfig } = await import("../../src/lib/config.js");
+  const { openDb } = await import("../../src/db/client.js");
+  const config = loadConfig();
+  const db = openDb(config.manifestDbPath);
+  const app = createApp({ db, config });
+
   await new Promise<void>((resolve) => {
     server = serve({ fetch: app.fetch, port: 0 }, (info) => {
       baseUrl = `http://127.0.0.1:${info.port}`;
@@ -37,6 +50,10 @@ afterAll(async () => {
   );
   await fsp.rm(dataDir, { recursive: true, force: true });
   delete process.env.TSA_TIMEOUT_MS;
+  delete process.env.API_KEY;
+  delete process.env.SESSION_SECRET;
+  delete process.env.ADMIN_PASSWORD;
+  delete process.env.MANIFEST_DB_PATH;
 });
 
 async function uploadFixture(): Promise<string> {
@@ -47,6 +64,7 @@ async function uploadFixture(): Promise<string> {
   const res = await fetch(`${baseUrl}/api/upload`, {
     method: "POST",
     body: form,
+    headers: { "X-API-Key": TEST_API_KEY },
   });
   expect(res.status).toBe(201);
   const body = (await res.json()) as { id: string; bundle_path: string };
