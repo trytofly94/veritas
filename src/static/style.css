@@ -421,3 +421,68 @@ h1 {
   color: #64748b;
   margin-bottom: var(--space-md);
 }
+
+/* ── Phase 3 BROWSE-02: Archive detail page ───────────────────────────── */
+.archive-detail-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md);
+}
+.back-link {
+  display: inline-block;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: var(--space-md);
+}
+.back-link:hover {
+  color: var(--c-text);
+}
+.archive-detail__filename {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 var(--space-xs);
+  color: var(--c-text);
+  word-break: break-word;
+}
+.archive-detail__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  font-size: 14px;
+  color: var(--c-text-muted);
+}
+.btn--ghost {
+  background: transparent;
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: var(--space-sm);
+}
+.btn--ghost:hover {
+  background: var(--c-bg);
+}
+.verify-result {
+  margin-top: var(--space-md);
+  font-size: 14px;
+}
+.verify-result__ok {
+  color: #15803d;
+  font-weight: 600;
+}
+.verify-result__fail {
+  color: var(--c-destructive);
+  font-weight: 600;
+}
+.verify-result__hint {
+  color: var(--c-text-muted);
+  font-weight: 400;
+  margin-top: var(--space-xs);
+}
+.archive-detail-page .card + .card {
+  margin-top: var(--space-md);
+}
