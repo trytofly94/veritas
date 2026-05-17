@@ -25,6 +25,17 @@ services:
       # Bind mount — bundle directories land on the host (./data on the host
       # filesystem). Nothing is persisted inside the container (D-05 / SC-5).
       - ./data:/data
+    # WR-03: defense-in-depth for a service that handles potentially
+    # sensitive evidence. Only /data (bind) and /tmp (tmpfs) need to be
+    # writable; the rootfs is read-only. All Linux capabilities are
+    # dropped; no-new-privileges blocks setuid escalation paths.
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       DATA_DIR: /data
       PORT: "3000"
