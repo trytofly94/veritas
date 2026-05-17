@@ -123,6 +123,8 @@ Exact HTML structures the executor must produce. All hand-authored, no component
 
 Page-level layout: wider than Phase 2 upload form. Container max-width `800px`, centered.
 
+**Primary focal point:** Filename column in the table — 16px text primary, leftmost column, highest contrast against the muted metadata columns to its right. The eye anchors here first; all other columns (date, type, status) are 14px text muted and subordinate.
+
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Archiv                              [+ Neue Datei]           │  ← 20px/600 heading + secondary btn
@@ -179,7 +181,7 @@ CSS spec:
 ```
 .tsa-badge {
   display: inline-block;
-  padding: 2px 8px;         /* xs vertical, sm horizontal */
+  padding: 0 8px;           /* 0 vertical (height + line-height center text), sm horizontal */
   height: 24px;
   line-height: 20px;
   font-size: 12px;
@@ -418,7 +420,7 @@ thead th:
   font-weight: 400
   color: #64748b          ← text muted
   text-align: left
-  padding: 8px 12px       ← sm vertical, 12px horizontal
+  padding: 8px 16px       ← sm vertical, md horizontal
   border-bottom: 2px solid #e2e8f0
 
 tbody tr:
@@ -427,7 +429,7 @@ tbody tr:
   cursor: pointer
 
 tbody td:
-  padding: 12px 12px
+  padding: 16px 16px      ← md vertical, md horizontal
   vertical-align: middle
 
 tbody tr:hover:
