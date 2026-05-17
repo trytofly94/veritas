@@ -35,6 +35,10 @@
 - [x] **META-02**: Einreicher kann beim Upload ein Label / Namen angeben (wird in `metadata.json` gespeichert)
 - [x] **META-03**: System erfasst Quell-IP-Adresse der Einreichung in `metadata.json`
 
+### Rechtliches
+
+- [ ] **LEGAL-01**: System zeigt im Download-Bundle (`VERIFY.md`) einen rechtlichen Hinweis: RFC 3161 ist unterstützendes Beweismittel (§ 286 ZPO freie Beweiswürdigung), keine gesetzliche Vermutung (§ 371a ZPO); Beweis von Integrität + Zeitexistenz, nicht Urheberschaft
+
 ## v2 Requirements
 
 ### Archiv-Browser
@@ -45,10 +49,6 @@
 ### Metadaten
 
 - **META-04**: Nutzer kann beim Upload eine Freitext-Beschreibung / Notiz eingeben
-
-### Rechtliches
-
-- **LEGAL-01**: System zeigt beim Upload und im Bundle einen rechtlichen Hinweis: RFC 3161 ist unterstützendes Beweismittel (§ 286 ZPO), keine gesetzliche Vermutung (§ 371a ZPO)
 
 ### Erweitert
 
@@ -86,5 +86,6 @@
 | UPLOAD-03 | Phase 2 | Pending |
 | SEC-01 | Phase 2 | Pending |
 | SEC-02 | Phase 2 | Pending |
+| LEGAL-01 | Phase 2 | Pending |
 | BROWSE-01 | Phase 3 | Pending |
 | BROWSE-02 | Phase 3 | Pending |

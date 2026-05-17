@@ -299,7 +299,7 @@ No third-party UI registries. Alpine.js is served as a vendored static file from
 - Alpine.js version to vendor: `3.x` latest stable at time of implementation. Download from `https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js` and place in `src/static/alpine.min.js` (or equivalent static assets path chosen by planner)
 - CSS: hand-authored in `src/static/style.css`, served at `/static/style.css` by Hono static middleware
 - HTML: rendered by a `src/views/` module (template strings or a minimal HTML builder — planner picks pattern)
-- The API key is injected into the upload page HTML at render time (D-11): `const apiKey = Bun.env.API_KEY` — rendered into the `x-data` Alpine component as a JS literal. The planner must ensure this is not leaked to unauthenticated `GET /` if the access model changes
+- The API key is injected into the upload page HTML at render time (D-11): `const apiKey = deps.config.apiKey` (Node config loaded via `loadConfig()` from env) — rendered into the `x-data` Alpine component as a JS literal. The planner must ensure this is not leaked to unauthenticated `GET /` if the access model changes
 - The ULID displayed in the confirmation panel must be truncated for display only if it exceeds visible space — full value is always what goes into the clipboard
 
 ---
