@@ -182,7 +182,7 @@ All error messages are German (D-10). Defined per surface and error code (D-23).
 | Wrong password | Login page | Inline below button | "Falsches Passwort." |
 | No file selected | Upload form | Inline below drag-drop zone | "Bitte zuerst eine Datei auswählen." |
 
-Error banner: `background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 12px 16px; color: #dc2626; font-size: 14px`.
+Error banner: `background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 8px 16px; color: #dc2626; font-size: 14px`.
 
 ---
 
