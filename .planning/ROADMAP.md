@@ -63,7 +63,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Clicking an entry opens a detail view showing all metadata.json fields including submitter label, source IP, server timestamp, TSA-attested time, and tsa_provider
 **Plans**: 2 plans
   - [x] 03-01-PLAN.md — Auth-gated archive list page (BROWSE-01): server-rendered table with TSA badges, empty state, row navigation
-  - [ ] 03-02-PLAN.md — Archive detail page + integrity-verify endpoint (BROWSE-02): full metadata card, Alpine.js verify component, POST /api/archive/:id/verify
+  - [x] 03-02-PLAN.md — Archive detail page + integrity-verify endpoint (BROWSE-02): full metadata card, Alpine.js verify component, POST /api/archive/:id/verify
 **UI hint**: yes
 
 ## Progress

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-05-17T18:25:07.255Z"
+last_updated: "2026-05-17T18:37:18.229Z"
 last_activity: 2026-05-17
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-05-16)
 
 Phase: 03 (archive-browser) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-17
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [█████████░] 90%
 *Updated after each plan completion*
 | Phase 01 P01-02 | 30 min | 2 tasks | 9 files |
 | Phase 01 P01-03 | 50 | 2 tasks | 9 files |
+| Phase 03 P02 | 8 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - Docker base: node:22-bookworm-slim (NOT Alpine — lacks native module support)
 - [Phase ?]: TSA fallback chain DFN→FreeTSA→DigiCert with pre-finalization openssl ts -verify and AllTsasFailed→502 (D-05 hard-fail invariant)
 - [Phase ?]: Bundle layout finalized at 7 artifacts (verify.sh mode 555, others 444) — CORE-03/04 complete
+- [Phase ?]: Phase 3 BROWSE-02: Page-vs-API auth split — renderErrorPage for HTML 500 on /archive/:id, errorResponse JSON envelope only for /api/archive/:id/verify (plan-checker W3)
+- [Phase ?]: Phase 3 BROWSE-02: Canonical TSA timestamp field is tsa_attested_at (DB column) — UI-SPEC patched to match (plan-checker W4)
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-17T18:25:07.249Z
+Last session: 2026-05-17T18:36:54.026Z
 Stopped at: Phase 3 UI-SPEC approved
 Resume file: None

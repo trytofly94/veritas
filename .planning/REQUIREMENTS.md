@@ -21,7 +21,7 @@
 ### Archiv-Browser
 
 - [x] **BROWSE-01**: Nutzer sieht Liste aller archivierten Einträge chronologisch (Dateiname, Datum, Typ, TSA-Status)
-- [ ] **BROWSE-02**: Nutzer kann Detail-Ansicht eines Eintrags öffnen mit allen Metadaten und Verifikations-Status
+- [x] **BROWSE-02**: Nutzer kann Detail-Ansicht eines Eintrags öffnen mit allen Metadaten und Verifikations-Status
 
 ### Sicherheit
 
@@ -88,4 +88,4 @@
 | SEC-02 | Phase 2 | Pending |
 | LEGAL-01 | Phase 2 | Pending |
 | BROWSE-01 | Phase 3 | Complete |
-| BROWSE-02 | Phase 3 | Pending |
+| BROWSE-02 | Phase 3 | Complete |
