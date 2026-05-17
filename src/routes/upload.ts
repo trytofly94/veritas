@@ -9,7 +9,7 @@ import { pipeline } from "node:stream/promises";
 import type { IncomingMessage } from "node:http";
 
 import { sha256OfFile } from "../lib/hash.js";
-import { requestTimestamp } from "../lib/tsa.js";
+import { requestTimestampWithFallback, AllTsasFailed } from "../lib/tsa.js";
 import { writeBundle } from "../lib/bundle.js";
 import { buildMetadata } from "../lib/metadata.js";
 import { newId } from "../lib/ids.js";
@@ -20,9 +20,6 @@ const MAX_BODY_BYTES = 100 * 1024 * 1024;
 
 /** Reasonable cap on the optional `label` text. */
 const LabelSchema = z.string().max(200);
-
-/** Where the bundled CA chain lives, relative to repo root. */
-const DFN_CA_PATH = path.resolve(process.cwd(), "assets/tsa-certs/dfn.pem");
 
 /**
  * Multipart upload result captured from busboy. We stream the file part
@@ -166,7 +163,11 @@ export function registerUpload(app: Hono): void {
 
     try {
       const sha256Hex = await sha256OfFile(parsed.tempPath);
-      const tsa = await requestTimestamp(sha256Hex, "dfn");
+      // D-09 + D-12: requestTimestampWithFallback iterates DFN → FreeTSA →
+      // DigiCert, runs openssl ts -verify against each provider's committed
+      // CA chain BEFORE accepting, and returns the full chain attempted.
+      // If every provider fails it throws AllTsasFailed.
+      const tsa = await requestTimestampWithFallback(sha256Hex);
       const metadata = buildMetadata({
         id,
         originalFilename: parsed.filename,
@@ -175,18 +176,23 @@ export function registerUpload(app: Hono): void {
         createdAt,
         label: parsed.label,
         sourceIp,
-        tsaProvider: "dfn",
+        tsaProvider: tsa.provider,
         tsaAttestedAt: tsa.attestedAt,
-        tsaFallbackChain: ["dfn"],
+        tsaFallbackChain: tsa.fallbackChain,
       });
 
       const bundlePath = await writeBundle({
         id,
         original: { filename: parsed.filename, sourcePath: parsed.tempPath },
         sha256Hex,
-        tsa,
+        tsa: {
+          provider: tsa.provider,
+          tsq: tsa.tsq,
+          tsr: tsa.tsr,
+          attestedAt: tsa.attestedAt,
+        },
         metadata,
-        caCertPath: DFN_CA_PATH,
+        caCertPath: tsa.caCertPath, // D-10: provider-matched CA chain
         dataDir,
       });
 
@@ -196,6 +202,9 @@ export function registerUpload(app: Hono): void {
       // cleanup; we still need to unlink the upload's temp file if it was
       // not yet moved into the bundle.
       await fsp.unlink(parsed.tempPath).catch(() => {});
+      if (err instanceof AllTsasFailed) {
+        return c.json({ error: "all_tsas_failed", chain: err.chain }, 502);
+      }
       const msg = (err as Error).message || "unknown error";
       return c.json({ error: msg }, 502);
     }

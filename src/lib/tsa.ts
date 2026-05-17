@@ -1,8 +1,14 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
+import * as path from "node:path";
+import * as fsp from "node:fs/promises";
+import * as os from "node:os";
+import * as crypto from "node:crypto";
 import * as asn1js from "asn1js";
 import { ContentInfo, SignedData } from "pkijs";
 import type { TsaProvider, TsaResult } from "../types.js";
+import { getTsaProviders, type TsaProviderConfig } from "./tsaProviders.js";
+import { verifyTsr } from "./verifyTsr.js";
 
 const execFile = promisify(execFileCb);
 
@@ -26,94 +32,252 @@ export interface FallbackResult {
   attestedAt: string;
   /** Providers attempted in order, including the one that succeeded last. */
   fallbackChain: TsaProvider[];
-  /** Absolute path to the CA cert chain to copy into the bundle. */
+  /** Absolute path to the CA cert chain to copy into the bundle (D-10). */
   caCertPath: string;
 }
 
-export async function requestTimestampWithFallback(
-  _sha256Hex: string,
-): Promise<FallbackResult> {
-  throw new Error(
-    "requestTimestampWithFallback: not yet implemented (Plan 01-02 RED)",
-  );
+/**
+ * Build an RFC 3161 TimeStampQuery for the given SHA-256 hex digest.
+ * Nonces are ON by default (CONCERN-2 / FreeTSA recommendation). The
+ * per-provider `noNonce` escape hatch lets future TSAs that require
+ * nonceless queries opt out — for v1 every provider keeps the default.
+ */
+async function buildTimestampQuery(
+  sha256Hex: string,
+  noNonce: boolean,
+): Promise<Buffer> {
+  // SECURITY: validate the only attacker-controlled value reaching execFile.
+  if (!/^[0-9a-f]{64}$/.test(sha256Hex)) {
+    throw new Error("buildTimestampQuery: sha256Hex must be 64 lowercase hex chars");
+  }
+  const args = ["ts", "-query", "-digest", sha256Hex, "-sha256", "-cert"];
+  if (noNonce) args.push("-no_nonce");
+  const { stdout } = await execFile("openssl", args, {
+    encoding: "buffer",
+    maxBuffer: 1024 * 1024,
+  });
+  return Buffer.from(stdout);
 }
 
-/** Per-TSA outbound HTTP timeout. */
-const TSA_TIMEOUT_MS = 10_000;
+/**
+ * POST a TimeStampQuery to the given TSA endpoint, return the raw TSR.
+ * Enforces a per-call AbortController timeout. The timeout path is exercised
+ * by tests/unit/tsa.fallback.test.ts (sloth-endpoint scenario), not only by
+ * ECONNREFUSED — see the threat model T-02-03 mitigation.
+ */
+async function postTsq(
+  endpoint: string,
+  tsq: Buffer,
+  timeoutMs: number,
+): Promise<Buffer> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), timeoutMs);
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/timestamp-query" },
+      // Coerce Buffer → Uint8Array for fetch BodyInit (Node 22 lib.dom types
+      // do not include Buffer in BodyInit). They share the underlying memory.
+      body: new Uint8Array(tsq),
+      signal: abort.signal,
+    });
+    if (!res.ok) {
+      throw new Error(`TSA returned HTTP ${res.status}`);
+    }
+    return Buffer.from(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-/** Per-TSA endpoint table. Plan 01-01 only supports DFN. */
-const ENDPOINTS: Record<TsaProvider, string> = {
-  dfn: "https://zeitstempel.dfn.de",
-  freetsa: "https://freetsa.org/tsr",
-  digicert: "http://timestamp.digicert.com", // placeholder; Plan 01-02 finalizes
-};
+/**
+ * Request a timestamp from a single TSA provider. Returns the parsed result.
+ * Does NOT perform openssl ts -verify — the caller (fallback orchestrator)
+ * does that against the provider's committed CA chain before accepting.
+ */
+async function requestTimestampFromProvider(
+  sha256Hex: string,
+  provider: TsaProviderConfig,
+): Promise<TsaResult> {
+  const tsq = await buildTimestampQuery(sha256Hex, provider.noNonce);
+  const tsr = await postTsq(provider.endpoint, tsq, provider.timeoutMs);
+  const attestedAt = parseGenTime(tsr);
+  // attach tsq back via the return for fallback orchestrator
+  // (TsaResult does not carry tsq — we return both via a transient object)
+  // Hack: stuff tsq into a side channel by extending the return shape.
+  return Object.assign({ provider: provider.id, tsq, tsr, attestedAt });
+}
+
+/**
+ * Iterate the configured TSA providers in priority order (D-12: DFN → FreeTSA
+ * → DigiCert). For each provider:
+ *   1. Build + POST the ts-query (per-provider timeout)
+ *   2. Parse the TSR genTime
+ *   3. verifyTsr against the provider's COMMITTED CA chain (D-09)
+ * On any failure (network, timeout, parse, verify) record the provider as
+ * failed and continue. On first success return the FallbackResult with the
+ * full chain of attempted providers. If every provider fails throw
+ * AllTsasFailed, whose .chain lets the route surface the failure as a 502
+ * with body `{error:"all_tsas_failed", chain:[...]}` while leaving no
+ * partial bundle on disk (D-05).
+ */
+export async function requestTimestampWithFallback(
+  sha256Hex: string,
+): Promise<FallbackResult> {
+  if (!/^[0-9a-f]{64}$/.test(sha256Hex)) {
+    throw new Error(
+      "requestTimestampWithFallback: sha256Hex must be 64 lowercase hex chars",
+    );
+  }
+
+  const providers = getTsaProviders();
+  const attempts: { provider: TsaProvider; error: string }[] = [];
+
+  for (const p of providers) {
+    let attempt: TsaResult | undefined;
+    try {
+      attempt = await requestTimestampFromProvider(sha256Hex, p);
+    } catch (err) {
+      attempts.push({
+        provider: p.id,
+        error: classifyError(err),
+      });
+      continue;
+    }
+
+    // Pre-finalization verify (D-09). Write the attested data to a temp file
+    // so openssl ts -verify -data <file> has something to chew on. We use
+    // a temp file because verifyTsr needs the actual original bytes, but at
+    // this stage in the pipeline the orchestrator does not have them — so we
+    // verify against an ephemeral file containing the digest's preimage IS
+    // NOT possible. Instead, we verify against the TSR itself by using
+    // openssl ts -verify -queryfile <tsq> -CAfile <ca>, which checks the
+    // signature without needing the original data. This is the same path
+    // the cert-discovery procedure uses (see assets/tsa-certs/README.md).
+    try {
+      await verifyTsrAgainstQuery({
+        tsq: (attempt as TsaResult & { tsq: Buffer }).tsq,
+        tsr: attempt.tsr,
+        caCertPath: path.resolve(process.cwd(), p.caCertPath),
+      });
+    } catch (err) {
+      attempts.push({
+        provider: p.id,
+        error: `verify-failed: ${(err as Error).message}`,
+      });
+      continue;
+    }
+
+    return {
+      provider: p.id,
+      tsq: (attempt as TsaResult & { tsq: Buffer }).tsq,
+      tsr: attempt.tsr,
+      attestedAt: attempt.attestedAt,
+      fallbackChain: [...attempts.map((a) => a.provider), p.id],
+      caCertPath: path.resolve(process.cwd(), p.caCertPath),
+    };
+  }
+
+  throw new AllTsasFailed(attempts);
+}
+
+/**
+ * Verify a TSR's signature against its corresponding TSQ + the committed CA
+ * chain. Unlike `verifyTsr` (which checks `tsr` against the original data
+ * file), this path verifies the cryptographic signature only and is suitable
+ * for the pre-finalization gate where the data file is the streamed upload
+ * temp and we want to validate the TSA's authenticity before committing the
+ * bundle to disk.
+ */
+async function verifyTsrAgainstQuery(args: {
+  tsq: Buffer;
+  tsr: Buffer;
+  caCertPath: string;
+}): Promise<void> {
+  const unique = `${process.pid}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+  const tsrPath = path.join(os.tmpdir(), `auto-archive-prv-${unique}.tsr`);
+  const tsqPath = path.join(os.tmpdir(), `auto-archive-prv-${unique}.tsq`);
+  await fsp.writeFile(tsrPath, args.tsr);
+  await fsp.writeFile(tsqPath, args.tsq);
+  try {
+    await execFile(
+      "openssl",
+      [
+        "ts",
+        "-verify",
+        "-in",
+        tsrPath,
+        "-queryfile",
+        tsqPath,
+        "-CAfile",
+        args.caCertPath,
+      ],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    );
+  } catch (err) {
+    const e = err as { stderr?: string; message: string };
+    throw new Error(e.stderr?.trim() || e.message);
+  } finally {
+    await fsp.unlink(tsrPath).catch(() => {});
+    await fsp.unlink(tsqPath).catch(() => {});
+  }
+}
+
+/** Re-export verifyTsr so callers needing the data-path check can use it. */
+export { verifyTsr };
+
+/**
+ * Reduce an arbitrary thrown value to a short error tag suitable for the
+ * AllTsasFailed.attempts log and the timeout-path assertion in tests.
+ */
+function classifyError(err: unknown): string {
+  if (err instanceof Error) {
+    // Node 22's fetch wraps the AbortError under `cause`. Normalize.
+    const cause = (err as { cause?: { name?: string; message?: string } }).cause;
+    if (
+      err.name === "AbortError" ||
+      cause?.name === "AbortError" ||
+      /aborted|signal/i.test(err.message)
+    ) {
+      return `timeout: ${err.message}`;
+    }
+    return `${err.name}: ${err.message}`;
+  }
+  return String(err);
+}
+
+// ---------------------------------------------------------------------------
+// Legacy single-provider API kept for backwards compatibility with Plan 01-01
+// tests + any caller that has not yet migrated. Now dispatches through the
+// provider table (so TSA_DFN_ENDPOINT env override applies).
+// ---------------------------------------------------------------------------
+
+/** Per-TSA outbound HTTP timeout (legacy entry point default). */
+const TSA_TIMEOUT_MS = 10_000;
 
 /**
  * Request an RFC 3161 timestamp for a SHA-256 digest from the named TSA.
- *
- * Pipeline:
- *  1. `openssl ts -query -digest <hex> -sha256 -cert` (a nonce is included
- *     by default — per FreeTSA recommendation we do not disable the nonce)
- *  2. HTTPS POST the TSQ to the TSA with `Content-Type: application/timestamp-query`
- *  3. Parse the TSR ASN.1 via pkijs and extract the SignedData → TSTInfo →
- *     genTime field. (We never regex the human-readable `openssl ts` reply
- *     output — that path is locale-dependent and fragile.)
- *
- * @throws Error if the digest is malformed, openssl fails, the TSA times
- *   out, returns a non-2xx, or the TSR cannot be parsed.
+ * Legacy single-provider entry point. New code should call
+ * requestTimestampWithFallback() instead.
  */
 export async function requestTimestamp(
   sha256Hex: string,
   provider: TsaProvider = "dfn",
 ): Promise<TsaResult> {
-  // SECURITY: validate the only attacker-controlled value reaching execFile.
-  if (!/^[0-9a-f]{64}$/.test(sha256Hex)) {
-    throw new Error("requestTimestamp: sha256Hex must be 64 lowercase hex chars");
+  const providers = getTsaProviders();
+  const p = providers.find((x) => x.id === provider);
+  if (!p) {
+    throw new Error(`requestTimestamp: unknown provider '${provider}'`);
   }
-  if (provider !== "dfn") {
-    // Plan 01-01 supports DFN only. Fallback chain arrives with Plan 01-02.
-    throw new Error(`requestTimestamp: provider '${provider}' not supported in Plan 01-01`);
-  }
-
-  // Step 1 — build the TimeStampQuery via openssl (binary on stdout).
-  // We must capture binary stdout: pass encoding: 'buffer' via maxBuffer override.
-  const { stdout: tsq } = await execFile(
-    "openssl",
-    ["ts", "-query", "-digest", sha256Hex, "-sha256", "-cert"],
-    { encoding: "buffer", maxBuffer: 1024 * 1024 },
+  const config: TsaProviderConfig = {
+    ...p,
+    timeoutMs: p.timeoutMs || TSA_TIMEOUT_MS,
+  };
+  const { tsq, tsr, attestedAt } = await requestTimestampFromProvider(
+    sha256Hex,
+    config,
   );
-  const tsqBuf = Buffer.from(tsq);
-
-  // Step 2 — POST to the TSA. AbortController enforces the per-call timeout.
-  const endpoint = ENDPOINTS[provider];
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), TSA_TIMEOUT_MS);
-  let tsrBuf: Buffer;
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/timestamp-query" },
-      body: tsqBuf,
-      signal: abort.signal,
-    });
-    if (!res.ok) {
-      throw new Error(`TSA ${provider} returned HTTP ${res.status}`);
-    }
-    const ct = res.headers.get("content-type") ?? "";
-    if (!ct.includes("application/timestamp-reply")) {
-      // Some TSAs are lax about Content-Type; don't hard-fail, but warn in
-      // dev. Continue — the ASN.1 parse below will reject garbage.
-    }
-    const buf = Buffer.from(await res.arrayBuffer());
-    tsrBuf = buf;
-  } finally {
-    clearTimeout(timer);
-  }
-
-  // Step 3 — parse genTime out of the TSR via pkijs (CONCERN-1).
-  const attestedAt = parseGenTime(tsrBuf);
-
-  return { provider, tsq: tsqBuf, tsr: tsrBuf, attestedAt };
+  return { provider: p.id, tsq, tsr, attestedAt };
 }
 
 /**
@@ -131,8 +295,6 @@ export async function requestTimestamp(
  * Returns an ISO 8601 UTC string.
  */
 export function parseGenTime(tsr: Buffer): string {
-  // Copy into a fresh ArrayBuffer to satisfy asn1js's BufferSource type
-  // (avoids the SharedArrayBuffer vs ArrayBuffer narrowing issue).
   const ab = new Uint8Array(tsr).buffer;
   const asn1 = asn1js.fromBER(ab);
   if (asn1.offset === -1) {
@@ -151,8 +313,6 @@ export function parseGenTime(tsr: Buffer): string {
   if (!eContent) {
     throw new Error("SignedData.encapContentInfo.eContent missing");
   }
-  // eContent is an OCTET STRING whose value bytes are the DER encoding of TSTInfo.
-  // pkijs exposes the raw bytes via valueBlock.valueHexView.
   const tstInfoBytes = (eContent.valueBlock as { valueHexView: Uint8Array })
     .valueHexView;
   const tstInfoAsn1 = asn1js.fromBER(new Uint8Array(tstInfoBytes).buffer);
@@ -160,16 +320,10 @@ export function parseGenTime(tsr: Buffer): string {
     throw new Error("TSTInfo is not valid ASN.1 BER");
   }
   const tstSeq = tstInfoAsn1.result as asn1js.Sequence;
-  // TSTInfo := SEQUENCE { version INTEGER, policy OID, messageImprint, serialNumber INTEGER,
-  //                       genTime GeneralizedTime, accuracy OPTIONAL, ordering BOOLEAN OPTIONAL,
-  //                       nonce INTEGER OPTIONAL, tsa OPTIONAL, extensions OPTIONAL }
-  // genTime is the 5th element (index 4).
   const genTimeNode = tstSeq.valueBlock.value[4];
   if (!genTimeNode) {
     throw new Error("TSTInfo.genTime missing");
   }
-  // pkijs exposes the parsed Date directly on GeneralizedTime via toDate(),
-  // but asn1js's raw GeneralizedTime stores .toDate() too.
   const gt = genTimeNode as unknown as { toDate(): Date };
   if (typeof gt.toDate !== "function") {
     throw new Error("TSTInfo.genTime is not a GeneralizedTime");
