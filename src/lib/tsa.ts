@@ -115,10 +115,10 @@ async function requestTimestampFromProvider(
   const tsq = await buildTimestampQuery(sha256Hex, provider.noNonce);
   const tsr = await postTsq(provider.endpoint, tsq, provider.timeoutMs);
   const attestedAt = parseGenTime(tsr);
-  // attach tsq back via the return for fallback orchestrator
-  // (TsaResult does not carry tsq — we return both via a transient object)
-  // Hack: stuff tsq into a side channel by extending the return shape.
-  return Object.assign({ provider: provider.id, tsq, tsr, attestedAt });
+  // WR-06: TsaResult carries tsq, tsr, attestedAt, and provider — no
+  // need for an Object.assign side channel or downstream type-bypass
+  // casts (see fallback orchestrator below).
+  return { provider: provider.id, tsq, tsr, attestedAt };
 }
 
 /**
@@ -169,7 +169,7 @@ export async function requestTimestampWithFallback(
     // the cert-discovery procedure uses (see assets/tsa-certs/README.md).
     try {
       await verifyTsrAgainstQuery({
-        tsq: (attempt as TsaResult & { tsq: Buffer }).tsq,
+        tsq: attempt.tsq,
         tsr: attempt.tsr,
         caCertPath: path.resolve(REPO_ROOT, p.caCertPath),
       });
@@ -183,7 +183,7 @@ export async function requestTimestampWithFallback(
 
     return {
       provider: p.id,
-      tsq: (attempt as TsaResult & { tsq: Buffer }).tsq,
+      tsq: attempt.tsq,
       tsr: attempt.tsr,
       attestedAt: attempt.attestedAt,
       fallbackChain: [...attempts.map((a) => a.provider), p.id],
