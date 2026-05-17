@@ -113,10 +113,14 @@ describe("GET /api/download/:id (happy path + session cookie)", () => {
       expect(listing).toContain(entry);
     }
 
-    // Count the actual file entries (lines matching "  NNNNN  " date pattern)
+    // Count the actual file entries (lines with a file size at the start).
+    // unzip -l format varies by platform:
+    //   macOS: "     SIZE  MM-DD-YYYY HH:MM   filename"
+    //   Linux: "     SIZE  YYYY-MM-DD HH:MM   filename"
+    // Match any line that starts with whitespace + digits + whitespace + date-like pattern.
     const fileLines = listing
       .split("\n")
-      .filter((l) => /^\s+\d+\s+\d{4}-\d{2}-\d{2}/.test(l));
+      .filter((l) => /^\s+\d+\s+\d{2}[-/]\d{2}[-/]\d{2,4}/.test(l));
     expect(fileLines).toHaveLength(8);
   }, 30_000);
 
