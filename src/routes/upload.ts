@@ -122,14 +122,23 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
         fail(new UploadError(413, `upload exceeds ${MAX_BODY_BYTES} byte limit`));
         return;
       }
-      // Validate label
-      let validatedLabel = label ?? filename;
-      const parsed = LabelSchema.safeParse(validatedLabel);
-      if (!parsed.success) {
-        fail(new UploadError(400, `label invalid: ${parsed.error.message}`));
-        return;
+      // CR-03: When no label is provided, derive it from the filename but
+      // cap to 200 chars (LabelSchema's max). NTFS/ext4 allow 255-byte
+      // filenames, so silently failing label validation on the
+      // filename-derived default would 400-reject legitimate uploads
+      // (especially from iOS/macOS clients with long auto-generated names).
+      // Client-supplied labels still must satisfy LabelSchema.
+      let validatedLabel: string;
+      if (label !== undefined) {
+        const parsed = LabelSchema.safeParse(label);
+        if (!parsed.success) {
+          fail(new UploadError(400, `label invalid: ${parsed.error.message}`));
+          return;
+        }
+        validatedLabel = parsed.data;
+      } else {
+        validatedLabel = (filename ?? "upload").slice(0, 200);
       }
-      validatedLabel = parsed.data;
       // CR-01: await the per-file pipeline before resolving so the temp
       // file is fully flushed to disk by the time the route hashes it.
       const capturedFilename = filename!;
