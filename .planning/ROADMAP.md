@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
   - [x] 01-01-PLAN.md — Walking Skeleton: scaffold + DFN happy-path upload (hash + TSA + bundle write)
   - [x] 01-02-PLAN.md — TSA fallback chain (DFN→FreeTSA→DigiCert) + pre-finalization verify + verify.sh in every bundle
-  - [ ] 01-03-PLAN.md — Dockerize for Unraid (multi-stage build, bind-mounted volume, container smoke test, human-verified Unraid deploy)
+  - [x] 01-03-PLAN.md — Dockerize for Unraid (multi-stage build, bind-mounted volume, container smoke test, human-verified Unraid deploy)
 
 ### Phase 2: HTTP API + Web Upload
 **Goal**: Users can submit files from iOS Shortcuts, n8n, curl, or a browser and download a verifiable ZIP bundle — all behind API-key and session authentication

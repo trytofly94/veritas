@@ -7,7 +7,7 @@
 
 ### Core Archive Engine
 
-- [ ] **CORE-01**: System berechnet SHA-256 Hash automatisch bei Eingang jeder Datei
+- [x] **CORE-01**: System berechnet SHA-256 Hash automatisch bei Eingang jeder Datei
 - [x] **CORE-02**: System fordert RFC 3161 Zeitstempel von DFN-TSA an (FreeTSA als Fallback bei Fehler)
 - [x] **CORE-03**: System speichert pro Einreichung ein strukturiertes Bundle: `original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `metadata.json`, `verify.sh`
 - [x] **CORE-04**: System ermöglicht nachträgliche Verifikation der Dateiintegrität per OpenSSL (via `verify.sh` im Bundle)
@@ -31,9 +31,9 @@
 
 ### Metadaten
 
-- [ ] **META-01**: System erfasst Server-UTC-Zeitstempel der Einreichung in `metadata.json`
-- [ ] **META-02**: Einreicher kann beim Upload ein Label / Namen angeben (wird in `metadata.json` gespeichert)
-- [ ] **META-03**: System erfasst Quell-IP-Adresse der Einreichung in `metadata.json`
+- [x] **META-01**: System erfasst Server-UTC-Zeitstempel der Einreichung in `metadata.json`
+- [x] **META-02**: Einreicher kann beim Upload ein Label / Namen angeben (wird in `metadata.json` gespeichert)
+- [x] **META-03**: System erfasst Quell-IP-Adresse der Einreichung in `metadata.json`
 
 ## v2 Requirements
 
@@ -73,14 +73,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 1 | Pending |
+| CORE-01 | Phase 1 | Complete |
 | CORE-02 | Phase 1 | Complete |
 | CORE-03 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
 | SEC-03 | Phase 1 | Complete |
-| META-01 | Phase 1 | Pending |
-| META-02 | Phase 1 | Pending |
-| META-03 | Phase 1 | Pending |
+| META-01 | Phase 1 | Complete |
+| META-02 | Phase 1 | Complete |
+| META-03 | Phase 1 | Complete |
 | UPLOAD-01 | Phase 2 | Pending |
 | UPLOAD-02 | Phase 2 | Pending |
 | UPLOAD-03 | Phase 2 | Pending |
