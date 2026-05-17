@@ -321,3 +321,103 @@ h1 {
 [x-cloak] {
   display: none !important;
 }
+
+/* === Phase 3: Archive Browser === */
+
+.archive-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.archive-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-lg);
+}
+
+.archive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.archive-table thead th {
+  font-size: 14px;
+  font-weight: 400;
+  color: #64748b;
+  text-align: left;
+  padding: 8px 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.archive-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.archive-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.archive-table tbody td {
+  padding: 16px 16px;
+  vertical-align: middle;
+  min-height: 48px;
+  color: #64748b;
+}
+
+.archive-table tbody td:first-child {
+  color: #0f172a;
+  font-size: 16px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-table tbody td:first-child a {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tsa-badge {
+  display: inline-block;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tsa-badge--ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tsa-badge--local {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.tsa-badge--failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-md);
+  color: #64748b;
+}
+
+.empty-state .muted {
+  color: #64748b;
+  margin-bottom: var(--space-md);
+}
