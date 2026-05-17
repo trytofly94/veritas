@@ -45,8 +45,8 @@ export interface ArchiveDetailMeta {
   mime_type: string;
   size_bytes: number;
   sha256: string;
-  server_timestamp: string;
-  submitter_label: string;
+  created_at: string;
+  label: string;
   source_ip: string;
   tsa_provider: string;
   tsa_status: string;
@@ -77,8 +77,8 @@ export function renderArchiveDetailPage(vm: ArchiveDetailViewModel): string {
   const badge = tsaBadgeProps(entry.tsa_provider, entry.tsa_status);
   const safeBadgeLabel = escapeHtml(badge.label);
 
-  const submitterLabel = meta.submitter_label && meta.submitter_label.trim() !== ""
-    ? escapeHtml(meta.submitter_label)
+  const submitterLabel = meta.label && meta.label.trim() !== ""
+    ? escapeHtml(meta.label)
     : "—";
 
   const tsaAttestedAt = entry.tsa_attested_at || meta.tsa_attested_at || "";
@@ -110,7 +110,7 @@ export function renderArchiveDetailPage(vm: ArchiveDetailViewModel): string {
     <h1 class="archive-detail__filename">${safeFilename}</h1>
     <div class="archive-detail__meta-row">
       <span class="${badge.className}">${safeBadgeLabel}</span>
-      <time>${escapeHtml(meta.server_timestamp)}</time>
+      <time>${escapeHtml(meta.created_at)}</time>
     </div>
 
     <section class="card" x-data="copyState()">
@@ -119,7 +119,7 @@ ${row("Bezeichnung", submitterLabel)}
 ${row("Dateigröße", sizeRendered)}
 ${row("Dateityp", escapeHtml(entry.mime_type))}
 ${row("SHA-256", shaValueHtml)}
-${row("Server-Zeitstempel", escapeHtml(meta.server_timestamp))}
+${row("Server-Zeitstempel", escapeHtml(meta.created_at))}
 ${row("TSA-Zeitstempel", tsaAttestedRendered)}
 ${row("TSA-Anbieter", escapeHtml(entry.tsa_provider))}
 ${row("Quell-IP", escapeHtml(entry.source_ip))}

@@ -18,6 +18,7 @@ import {
   type ArchiveDetailViewModel,
 } from "../../src/views/archive-detail.js";
 import { renderErrorPage } from "../../src/views/error-page.js";
+import { buildMetadata } from "../../src/lib/metadata.js";
 
 function vm(
   overrides: Partial<ArchiveDetailViewModel["entry"] & ArchiveDetailViewModel["meta"]> = {},
@@ -43,8 +44,8 @@ function vm(
     mime_type: baseEntry.mime_type,
     size_bytes: baseEntry.size_bytes,
     sha256: baseEntry.sha256,
-    server_timestamp: "2026-05-17T14:32:03Z",
-    submitter_label: "Verkehrsunfall A100",
+    created_at: "2026-05-17T14:32:03Z",
+    label: "Verkehrsunfall A100",
     source_ip: baseEntry.source_ip,
     tsa_provider: baseEntry.tsa_provider,
     tsa_status: baseEntry.tsa_status,
@@ -129,8 +130,8 @@ describe("renderArchiveDetailPage — structure & copy", () => {
 });
 
 describe("renderArchiveDetailPage — empty label & tsa_attested_at fallback", () => {
-  it("renders submitter_label='' as em-dash", () => {
-    const html = renderArchiveDetailPage(vm({ submitter_label: "" }));
+  it("renders label='' as em-dash", () => {
+    const html = renderArchiveDetailPage(vm({ label: "" }));
     // Bezeichnung row value should be the em-dash placeholder
     expect(html).toMatch(/Bezeichnung[\s\S]{0,200}—/);
   });
@@ -163,6 +164,49 @@ describe("W4 regression guard — obsolete field name absent from rendered HTML"
   it("does NOT contain 'tsa_attested_time' anywhere in the output", () => {
     const html = renderArchiveDetailPage(vm());
     expect(html).not.toContain("tsa_attested_time");
+  });
+});
+
+describe("renderArchiveDetailPage — integration with real buildMetadata()", () => {
+  // Fixture-drift guard: if buildMetadata() ever renames a field, this test
+  // breaks before unit-test fixtures can mask the regression.
+  it("renders label and timestamp from a real buildMetadata() result", () => {
+    const meta = buildMetadata({
+      id: "01ABCDEFGHJKMNPQRSTVWXYZ12",
+      originalFilename: "evidence.pdf",
+      sizeBytes: 186777,
+      sha256Hex: "a".repeat(64),
+      createdAt: "2026-05-17T14:32:03Z",
+      label: "Verkehrsunfall A100",
+      sourceIp: "192.168.178.1",
+      tsaProvider: "dfn",
+      tsaAttestedAt: "2026-05-17T14:32:04Z",
+      tsaFallbackChain: ["dfn"],
+    });
+
+    const entry = {
+      id: meta.id,
+      original_filename: meta.original_filename,
+      mime_type: meta.mime_type,
+      size_bytes: meta.size_bytes,
+      sha256: meta.sha256,
+      created_at: meta.created_at,
+      label: meta.label,
+      source_ip: meta.source_ip,
+      tsa_provider: meta.tsa_provider,
+      tsa_status: meta.tsa_status,
+      tsa_attested_at: meta.tsa_attested_at,
+      tsa_fallback_chain: JSON.stringify(meta.tsa_fallback_chain),
+      bundle_dir: "/data/bundles/01ABCDEFGHJKMNPQRSTVWXYZ12",
+    };
+
+    const html = renderArchiveDetailPage({ entry, meta });
+
+    expect(html).toContain("Verkehrsunfall A100");
+    expect(html).toContain("2026-05-17T14:32:03Z");
+    expect(html).toContain("2026-05-17T14:32:04Z");
+    expect(html).not.toMatch(/<time>\s*<\/time>/);
+    expect(html).not.toMatch(/Bezeichnung[\s\S]{0,200}—/);
   });
 });
 
