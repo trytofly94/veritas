@@ -106,16 +106,21 @@ export async function writeBundle(args: WriteBundleArgs): Promise<string> {
     );
     await fsp.copyFile(verifyTemplatePath, path.join(tmpDir, "verify.sh"));
 
-    // Step 8 — atomic finalize
-    await fsp.rename(tmpDir, finalDir);
-
-    // Step 9 — chmod files (D-07). verify.sh needs +x for the user to run it
-    // directly; every other artifact is 0o444 (read-only).
-    const entries = await fsp.readdir(finalDir);
-    for (const entry of entries) {
+    // WR-01: chmod every file in tmpDir BEFORE the final rename so that
+    // the rename is the single atomic step that publishes the bundle. If
+    // the process is killed mid-chmod, the half-permissioned bundle stays
+    // hidden under .tmp-<id> and is cleaned by the catch block on next
+    // start (or by a future janitor); a "finalized" bundle on disk is
+    // always 0o444 / 0o555 as D-07 requires. verify.sh needs +x; every
+    // other artifact is read-only.
+    const tmpEntries = await fsp.readdir(tmpDir);
+    for (const entry of tmpEntries) {
       const mode = entry === "verify.sh" ? 0o555 : 0o444;
-      await fsp.chmod(path.join(finalDir, entry), mode);
+      await fsp.chmod(path.join(tmpDir, entry), mode);
     }
+
+    // Step 8 — atomic finalize (now the single post-permissions step).
+    await fsp.rename(tmpDir, finalDir);
 
     return finalDir;
   } catch (err) {
