@@ -14,9 +14,10 @@ import { writeBundle } from "../lib/bundle.js";
 import { buildMetadata } from "../lib/metadata.js";
 import { newId } from "../lib/ids.js";
 import { resolveSourceIp } from "../lib/sourceIp.js";
-
-/** Cap any single upload body at 100 MiB (T-01-02). */
-const MAX_BODY_BYTES = 100 * 1024 * 1024;
+import type { AppDeps } from "../server.js";
+import { apiKeyMiddleware } from "../middleware/apiKey.js";
+import { errorResponse } from "../middleware/errorEnvelope.js";
+import { archiveEntries } from "../db/schema.js";
 
 /** Reasonable cap on the optional `label` text. */
 const LabelSchema = z.string().max(200);
@@ -42,14 +43,16 @@ class UploadError extends Error {
  * Stream the multipart body off the raw IncomingMessage via busboy into a
  * temp file. Returns when busboy finishes (or rejects on any error / size
  * cap breach). Cleans up the temp file on error.
+ *
+ * D-25: maxBodyBytes is passed in from deps.config.maxUploadBytes.
  */
-function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
+function streamMultipart(req: IncomingMessage, maxBodyBytes: number): Promise<ParsedUpload> {
   return new Promise((resolve, reject) => {
     let bb: Busboy.Busboy;
     try {
       bb = Busboy({
         headers: req.headers,
-        limits: { fileSize: MAX_BODY_BYTES, files: 1, fields: 10 },
+        limits: { fileSize: maxBodyBytes, files: 1, fields: 10 },
       });
     } catch (err) {
       reject(new UploadError(400, `invalid multipart headers: ${(err as Error).message}`));
@@ -119,7 +122,7 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
         return;
       }
       if (truncated) {
-        fail(new UploadError(413, `upload exceeds ${MAX_BODY_BYTES} byte limit`));
+        fail(new UploadError(413, `upload exceeds ${maxBodyBytes} byte limit`));
         return;
       }
       // CR-03: When no label is provided, derive it from the filename but
@@ -163,31 +166,35 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
   });
 }
 
-export function registerUpload(app: Hono): void {
-  app.post("/api/upload", async (c: Context) => {
+export function registerUpload(app: Hono, deps: AppDeps): void {
+  // D-25: use config-provided byte limit (not hard-coded constant)
+  const MAX_BODY_BYTES = deps.config.maxUploadBytes;
+
+  // D-01: wrap handler with apiKeyMiddleware for timing-safe auth gate
+  app.post("/api/upload", apiKeyMiddleware(deps.config.apiKey), async (c: Context) => {
     const env = c.env as { incoming?: IncomingMessage };
     const incoming = env?.incoming;
     if (!incoming) {
-      return c.json(
-        { error: "server misconfigured: no raw IncomingMessage available" },
-        500,
-      );
+      return errorResponse(c, 500, "INTERNAL_ERROR", "Unbekannter Fehler.");
     }
 
     let parsed: ParsedUpload;
     try {
-      parsed = await streamMultipart(incoming);
+      parsed = await streamMultipart(incoming, MAX_BODY_BYTES);
     } catch (err) {
       if (err instanceof UploadError) {
-        return c.json({ error: err.message }, err.status);
+        if (err.status === 413) {
+          return errorResponse(c, 413, "FILE_TOO_LARGE", "Datei zu groß. Maximale Größe: 100 MB.");
+        }
+        return errorResponse(c, 400, "INVALID_REQUEST", "Ungültige Anfrage.");
       }
-      return c.json({ error: `upload failed: ${(err as Error).message}` }, 400);
+      return errorResponse(c, 400, "INVALID_REQUEST", "Ungültige Anfrage.");
     }
 
     const id = newId();
     const createdAt = new Date().toISOString();
     const sourceIp = resolveSourceIp(c);
-    const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), "data");
+    const dataDir = deps.config.dataDir;
 
     try {
       const sha256Hex = await sha256OfFile(parsed.tempPath);
@@ -224,6 +231,30 @@ export function registerUpload(app: Hono): void {
         dataDir,
       });
 
+      // D-21: INSERT DB row after bundle is on disk.
+      // On INSERT failure: log orphan, emit 500, leave bundle on disk for backfill recovery.
+      try {
+        deps.db.insert(archiveEntries).values({
+          id,
+          original_filename: parsed.filename,
+          mime_type: metadata.mime_type,
+          size_bytes: parsed.sizeBytes,
+          sha256: sha256Hex,
+          created_at: createdAt,
+          label: parsed.label,
+          source_ip: sourceIp,
+          tsa_provider: tsa.provider,
+          tsa_status: "verified",
+          tsa_attested_at: tsa.attestedAt,
+          tsa_fallback_chain: JSON.stringify(tsa.fallbackChain),
+          bundle_dir: bundlePath,
+        }).run();
+      } catch (dbErr) {
+        // D-21: bundle stays on disk for backfill recovery on next boot
+        console.error("[upload] DB insert failed for", id, "bundle stays on disk", dbErr);
+        return errorResponse(c, 500, "INTERNAL_ERROR", "Unbekannter Fehler.");
+      }
+
       return c.json({ id, bundle_path: bundlePath }, 201);
     } catch (err) {
       // D-05: never leave a partial bundle. writeBundle handles its own tmp
@@ -231,10 +262,11 @@ export function registerUpload(app: Hono): void {
       // not yet moved into the bundle.
       await fsp.unlink(parsed.tempPath).catch(() => {});
       if (err instanceof AllTsasFailed) {
-        return c.json({ error: "all_tsas_failed", chain: err.chain }, 502);
+        // T-02-11: log chain detail server-side only; response body is generic
+        console.error("[upload] all TSAs failed", err.chain);
+        return errorResponse(c, 502, "TSA_UNAVAILABLE", "Zeitstempel-Dienst nicht erreichbar. Bitte in einigen Minuten erneut versuchen.");
       }
-      const msg = (err as Error).message || "unknown error";
-      return c.json({ error: msg }, 502);
+      return errorResponse(c, 500, "INTERNAL_ERROR", "Unbekannter Fehler.");
     }
   });
 }

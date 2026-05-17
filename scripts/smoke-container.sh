@@ -21,6 +21,8 @@ HEALTH_URL="http://127.0.0.1:${PORT}/health"
 UPLOAD_URL="http://127.0.0.1:${PORT}/api/upload"
 FIXTURE="tests/fixtures/hello.txt"
 DATA_DIR="./data"
+# Phase 2: API key used by the smoke upload request (matches docker-compose.yml default)
+SMOKE_API_KEY="${API_KEY:-smoke-test-api-key-change-in-production}"
 
 log() { printf '[smoke] %s\n' "$*" >&2; }
 fail() { printf '[smoke] FAIL: %s\n' "$*" >&2; exit 1; }
@@ -72,6 +74,7 @@ fi
 log "POSTing fixture to ${UPLOAD_URL}"
 RESPONSE_FILE="$(mktemp)"
 HTTP_STATUS="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}' \
+  -H "X-API-Key: ${SMOKE_API_KEY}" \
   -F "file=@${FIXTURE}" -F "label=smoke" "$UPLOAD_URL")"
 [ "$HTTP_STATUS" = "201" ] \
   || { cat "$RESPONSE_FILE" >&2; fail "expected HTTP 201, got ${HTTP_STATUS}"; }
