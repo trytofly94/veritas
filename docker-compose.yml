@@ -14,7 +14,13 @@ services:
       dockerfile: Dockerfile
     image: auto-archive:phase1
     ports:
-      - "3000:3000"
+      # WR-02: bind to loopback ONLY by default. Phase 1 has no auth, so
+      # exposing the upload endpoint on 0.0.0.0 would publish it to the
+      # entire LAN (and to anything that can reach the LAN via Docker's
+      # well-known iptables bypass of UFW). For LAN access, put an
+      # authenticated reverse proxy in front, or consciously edit this
+      # line to "0.0.0.0:3000:3000".
+      - "127.0.0.1:3000:3000"
     volumes:
       # Bind mount — bundle directories land on the host (./data on the host
       # filesystem). Nothing is persisted inside the container (D-05 / SC-5).
