@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { registerUpload } from "./routes/upload.js";
+import { registerPages } from "./routes/pages.js";
+import { registerLogin } from "./routes/login.js";
 import { registerErrorEnvelope } from "./middleware/errorEnvelope.js";
 import type { AppConfig } from "./lib/config.js";
 import type { Db } from "./db/client.js";
@@ -30,11 +32,16 @@ export function createApp(deps: AppDeps): Hono {
   // 2. Health check (unchanged)
   app.get("/health", (c) => c.json({ ok: true }));
 
-  // 3. Upload route (with API key gate wired in Task 3 / Plan 03)
-  registerUpload(app, deps);
+  // 3. Pages route: GET / (upload form) + static asset serving (Plan 04)
+  registerPages(app, deps);
 
-  // INSERTION POINT: Plans 04 + 05 add registerPages, registerLogin,
-  // registerStatic, registerDownload here.
+  // 4. Login/logout routes: GET /login + POST /login + POST /logout (Plan 04)
+  registerLogin(app, deps);
+
+  // INSERTION POINT: Plan 05 adds registerDownload here.
+
+  // 5. Upload route (with API key gate wired in Task 3 / Plan 03)
+  registerUpload(app, deps);
 
   console.info("auto-archive ready (auth active)");
   return app;
