@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { serve } from "@hono/node-server";
 import { createApp } from "../../src/server.js";
+import { loadConfig } from "../../src/lib/config.js";
+import { openDb } from "../../src/db/client.js";
+import { archiveEntries } from "../../src/db/schema.js";
+import { eq } from "drizzle-orm";
 import { execFileSync } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import * as fs from "node:fs";
@@ -13,16 +17,28 @@ import { Readable } from "node:stream";
 
 const FIXTURE = path.resolve(__dirname, "../fixtures/hello.txt");
 
+const TEST_API_KEY = "test-api-key-happy-path-1234567890";
+
 let server: ReturnType<typeof serve>;
 let baseUrl: string;
 let dataDir: string;
 let bigFixture: string;
+let db: ReturnType<typeof openDb>;
 
 beforeAll(async () => {
   dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-"));
-  process.env.DATA_DIR = dataDir;
 
-  const app = createApp();
+  // Set env vars BEFORE calling loadConfig (D-06 fail-fast)
+  process.env.DATA_DIR = dataDir;
+  process.env.API_KEY = TEST_API_KEY;
+  process.env.SESSION_SECRET = "test-session-secret-must-be-32-plus-bytes-long-yo";
+  process.env.ADMIN_PASSWORD = "test-pass";
+  process.env.MANIFEST_DB_PATH = path.join(dataDir, "manifest.sqlite");
+
+  const config = loadConfig();
+  db = openDb(config.manifestDbPath);
+  const app = createApp({ db, config });
+
   await new Promise<void>((resolve) => {
     server = serve({ fetch: app.fetch, port: 0 }, (info) => {
       baseUrl = `http://127.0.0.1:${info.port}`;
@@ -46,6 +62,10 @@ afterAll(async () => {
     server.close((err) => (err ? reject(err) : resolve()))
   );
   await fsp.rm(dataDir, { recursive: true, force: true });
+  delete process.env.API_KEY;
+  delete process.env.SESSION_SECRET;
+  delete process.env.ADMIN_PASSWORD;
+  delete process.env.MANIFEST_DB_PATH;
 });
 
 const EXPECTED_KEYS = [
@@ -77,6 +97,7 @@ describe("POST /api/upload (happy path)", () => {
     const res = await fetch(`${baseUrl}/api/upload`, {
       method: "POST",
       body: form,
+      headers: { "X-API-Key": TEST_API_KEY },
     });
 
     expect(res.status).toBe(201);
@@ -127,6 +148,13 @@ describe("POST /api/upload (happy path)", () => {
     expect(meta.original_filename).toBe("hello.txt");
     expect(meta.sha256).toMatch(/^[0-9a-f]{64}$/);
 
+    // D-21: verify DB row was inserted
+    const row = db.select().from(archiveEntries).where(eq(archiveEntries.id, body.id)).get();
+    expect(row).toBeTruthy();
+    expect(row!.id).toBe(body.id);
+    expect(row!.bundle_dir).toBe(body.bundle_path);
+    expect(row!.tsa_provider).toBe("dfn");
+
     // OpenSSL ts -verify
     execFileSync(
       "openssl",
@@ -164,6 +192,7 @@ describe("POST /api/upload (happy path)", () => {
       const res = await fetch(`${baseUrl}/api/upload`, {
         method: "POST",
         body: form,
+        headers: { "X-API-Key": TEST_API_KEY },
       });
       expect(res.status).toBe(201);
     } finally {
