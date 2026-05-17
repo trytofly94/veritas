@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { registerUpload } from "./routes/upload.js";
 import { registerPages } from "./routes/pages.js";
 import { registerLogin } from "./routes/login.js";
+import { registerArchive } from "./routes/archive.js";
 import { registerDownload } from "./routes/download.js";
 import { registerErrorEnvelope } from "./middleware/errorEnvelope.js";
 import type { AppConfig } from "./lib/config.js";
@@ -38,6 +39,9 @@ export function createApp(deps: AppDeps): Hono {
 
   // 4. Login/logout routes: GET /login + POST /login + POST /logout (Plan 04)
   registerLogin(app, deps);
+
+  // 5b. Archive browser routes: GET /archive (+ /archive/:id added by 03-02)
+  registerArchive(app, deps);
 
   // 5. Download route: GET /api/download/:id (Plan 05)
   registerDownload(app, deps);
