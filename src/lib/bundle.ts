@@ -98,13 +98,23 @@ export async function writeBundle(args: WriteBundleArgs): Promise<string> {
       "utf8",
     );
 
+    // Step 7b — embed verify.sh (CORE-04, D-09). Copied from the committed
+    // assets/verify-template.sh so every bundle on disk is self-verifying.
+    const verifyTemplatePath = path.resolve(
+      process.cwd(),
+      "assets/verify-template.sh",
+    );
+    await fsp.copyFile(verifyTemplatePath, path.join(tmpDir, "verify.sh"));
+
     // Step 8 — atomic finalize
     await fsp.rename(tmpDir, finalDir);
 
-    // Step 9 — chmod every file 0o444 (D-07)
+    // Step 9 — chmod files (D-07). verify.sh needs +x for the user to run it
+    // directly; every other artifact is 0o444 (read-only).
     const entries = await fsp.readdir(finalDir);
     for (const entry of entries) {
-      await fsp.chmod(path.join(finalDir, entry), 0o444);
+      const mode = entry === "verify.sh" ? 0o555 : 0o444;
+      await fsp.chmod(path.join(finalDir, entry), mode);
     }
 
     return finalDir;

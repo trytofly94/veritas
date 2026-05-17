@@ -24,6 +24,13 @@ function restoreEnv() {
 
 beforeEach(() => {
   vi.resetModules();
+  // Defensive: another test file running in the same worker may have
+  // mutated TSA_*_ENDPOINT and not yet restored. Clear all overrides at the
+  // start of each unit test; tests set what they need explicitly.
+  delete process.env.TSA_DFN_ENDPOINT;
+  delete process.env.TSA_FREETSA_ENDPOINT;
+  delete process.env.TSA_DIGICERT_ENDPOINT;
+  delete process.env.TSA_TIMEOUT_MS;
 });
 
 afterEach(() => {

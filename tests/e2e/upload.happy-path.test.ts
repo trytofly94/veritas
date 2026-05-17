@@ -84,7 +84,8 @@ describe("POST /api/upload (happy path)", () => {
     expect(body.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(body.bundle_path).toBeTruthy();
 
-    // Directory contents
+    // Directory contents — 7 files since Plan 01-02 (CORE-03 full set
+    // including verify.sh).
     const entries = (await fsp.readdir(body.bundle_path)).sort();
     expect(entries).toEqual(
       [
@@ -94,6 +95,7 @@ describe("POST /api/upload (happy path)", () => {
         "original.tsr",
         "original.txt",
         "tsa-cacert.pem",
+        "verify.sh",
       ].sort()
     );
 

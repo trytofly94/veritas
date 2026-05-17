@@ -135,16 +135,10 @@ describe("verify.sh in every bundle (CORE-04)", () => {
     const copy = await copyToWritable(bundle);
     try {
       // Replace tsr with 100 bytes of random — invalid ASN.1.
-      const random = await fsp.readFile("/dev/urandom").catch(() => {
-        // /dev/urandom may not be readable in full; we only need 100 bytes
-        return Buffer.alloc(0);
-      });
-      const garbage =
-        random.length >= 100
-          ? random.subarray(0, 100)
-          : Buffer.from(
-              "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            ).subarray(0, 100);
+      // crypto.randomBytes is bounded; never read /dev/urandom directly
+      // because fsp.readFile on it never resolves.
+      const { randomBytes } = await import("node:crypto");
+      const garbage = randomBytes(100);
       await fsp.writeFile(path.join(copy, "original.tsr"), garbage);
       const result = spawnSync("sh", ["verify.sh"], {
         cwd: copy,
