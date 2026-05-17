@@ -49,7 +49,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   - [x] 02-01-PLAN.md — Foundation utilities (config, errorEnvelope, slug, sessionCookie, VERIFY.md template)
   - [x] 02-02-PLAN.md — SQLite manifest layer (Drizzle schema, DB client, startup backfill)
   - [x] 02-03-PLAN.md — Middleware + bootstrap rewire + API-key gate on upload (D-21 DB insert)
-  - [ ] 02-04-PLAN.md — Web upload form + login/logout + static assets (UPLOAD-02, SEC-02)
+  - [x] 02-04-PLAN.md — Web upload form + login/logout + static assets (UPLOAD-02, SEC-02)
   - [ ] 02-05-PLAN.md — Download ZIP endpoint with VERIFY.md (UPLOAD-03, LEGAL-01)
 **UI hint**: yes
 
