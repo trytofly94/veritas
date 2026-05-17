@@ -4,11 +4,24 @@ import * as path from "node:path";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 import * as asn1js from "asn1js";
 import { ContentInfo, SignedData } from "pkijs";
 import type { TsaProvider, TsaResult } from "../types.js";
 import { getTsaProviders, type TsaProviderConfig } from "./tsaProviders.js";
 import { verifyTsr } from "./verifyTsr.js";
+
+/**
+ * WR-05: Resolve module-relative paths instead of cwd-relative ones, so
+ * the service still works when launched from a different working
+ * directory (systemd units default to /, process supervisors may chdir,
+ * etc.). At runtime this file lives at `dist/lib/tsa.js` and at dev/test
+ * time at `src/lib/tsa.ts`; both layouts have the repo root two levels up.
+ */
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 
 const execFile = promisify(execFileCb);
 
@@ -158,7 +171,7 @@ export async function requestTimestampWithFallback(
       await verifyTsrAgainstQuery({
         tsq: (attempt as TsaResult & { tsq: Buffer }).tsq,
         tsr: attempt.tsr,
-        caCertPath: path.resolve(process.cwd(), p.caCertPath),
+        caCertPath: path.resolve(REPO_ROOT, p.caCertPath),
       });
     } catch (err) {
       attempts.push({
@@ -174,7 +187,7 @@ export async function requestTimestampWithFallback(
       tsr: attempt.tsr,
       attestedAt: attempt.attestedAt,
       fallbackChain: [...attempts.map((a) => a.provider), p.id],
-      caCertPath: path.resolve(process.cwd(), p.caCertPath),
+      caCertPath: path.resolve(REPO_ROOT, p.caCertPath),
     };
   }
 

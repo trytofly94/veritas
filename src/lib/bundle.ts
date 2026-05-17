@@ -2,7 +2,20 @@ import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import { pipeline } from "node:stream/promises";
+import { fileURLToPath } from "node:url";
 import type { Metadata, TsaResult } from "../types.js";
+
+/**
+ * WR-05: Resolve module-relative paths instead of cwd-relative ones so
+ * the service still works when launched from a different working
+ * directory. At runtime this file lives at `dist/lib/bundle.js` and at
+ * dev/test time at `src/lib/bundle.ts`; both layouts have the repo root
+ * two levels up, where `assets/` is committed.
+ */
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 
 export interface WriteBundleArgs {
   id: string;
@@ -101,7 +114,7 @@ export async function writeBundle(args: WriteBundleArgs): Promise<string> {
     // Step 7b — embed verify.sh (CORE-04, D-09). Copied from the committed
     // assets/verify-template.sh so every bundle on disk is self-verifying.
     const verifyTemplatePath = path.resolve(
-      process.cwd(),
+      REPO_ROOT,
       "assets/verify-template.sh",
     );
     await fsp.copyFile(verifyTemplatePath, path.join(tmpDir, "verify.sh"));
