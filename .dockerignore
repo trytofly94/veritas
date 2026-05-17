@@ -6,3 +6,7 @@ tests
 coverage
 *.log
 .DS_Store
+.env
+.env.*
+.planning
+scratchpads

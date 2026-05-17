@@ -1,0 +1,30 @@
+# auto-archive — Phase 1 container compose definition.
+#
+# IMPORTANT: Phase 1 has NO authentication. Do NOT publish port 3000 to the
+# public internet. Reach the service only over your LAN or via an authenticated
+# reverse-proxy (Phase 2 will add an X-API-Key middleware).
+
+services:
+  auto-archive:
+    # container_name pinned so `docker compose exec` and `docker exec` are
+    # deterministic regardless of how Compose names the project (CONCERN-4).
+    container_name: auto-archive
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: auto-archive:phase1
+    ports:
+      - "3000:3000"
+    volumes:
+      # Bind mount — bundle directories land on the host (./data on the host
+      # filesystem). Nothing is persisted inside the container (D-05 / SC-5).
+      - ./data:/data
+    environment:
+      DATA_DIR: /data
+      PORT: "3000"
+      # Optional TSA endpoint overrides — uncomment to point at custom URLs.
+      # TSA_DFN_ENDPOINT: http://zeitstempel.dfn.de
+      # TSA_FREETSA_ENDPOINT: https://freetsa.org/tsr
+      # TSA_DIGICERT_ENDPOINT: http://timestamp.digicert.com
+      # TSA_TIMEOUT_MS: "10000"
+    restart: unless-stopped
