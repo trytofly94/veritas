@@ -245,7 +245,8 @@ Metadata fields displayed (all fields from `metadata.json` + SQLite manifest):
 | Dateityp | `mime_type` | Raw MIME string (e.g. `application/pdf`) |
 | SHA-256 | `sha256` | Monospace, first 16 chars + "…" displayed; full value in clipboard on copy; copy button |
 | Server-Zeitstempel | `server_timestamp` | ISO 8601 UTC string as-is |
-| TSA-Zeitstempel | `tsa_attested_time` | ISO 8601 UTC string as-is; "—" if `tsa_status !== "ok"` |
+| TSA-Zeitstempel | `tsa_attested_at` | ISO 8601 UTC string as-is; "—" if `tsa_status !== "ok"` |
+<!-- Field name canonicalized to tsa_attested_at (DB column from Phase 2 schema); plan-checker W4. -->
 | TSA-Anbieter | `tsa_provider` | Raw value (e.g. `dfn`, `freetsa`, `local-fallback`) |
 | Quell-IP | `source_ip` | Raw IP string |
 
