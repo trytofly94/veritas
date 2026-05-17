@@ -67,8 +67,9 @@ describe("GET /", () => {
   it("embeds the API_KEY in the x-data attribute", async () => {
     const res = await fetch(`${baseUrl}/`);
     const body = await res.text();
-    // The page renders: x-data="uploadForm("test-api-key-web-upload-1234567890")"
-    const match = body.match(/x-data="uploadForm\(([^)]+)\)"/);
+    // The page renders: x-data='uploadForm("test-api-key-web-upload-1234567890")'
+    // (single-quoted attribute so the JSON.stringify-produced double quotes are valid)
+    const match = body.match(/x-data='uploadForm\(([^)]+)\)'/);
     expect(match).toBeTruthy();
     const injectedKey = JSON.parse(match![1]);
     expect(injectedKey).toBe(TEST_API_KEY);
@@ -103,7 +104,7 @@ describe("Round-trip: page API key → /api/upload", () => {
     // 1. GET / and extract the injected API key from the x-data attribute
     const pageRes = await fetch(`${baseUrl}/`);
     const pageBody = await pageRes.text();
-    const match = pageBody.match(/x-data="uploadForm\(([^)]+)\)"/);
+    const match = pageBody.match(/x-data='uploadForm\(([^)]+)\)'/);
     expect(match).toBeTruthy();
     const extractedKey = JSON.parse(match![1]);
     expect(extractedKey).toBe(TEST_API_KEY);

@@ -10,8 +10,12 @@
  */
 
 export function renderUploadPage({ apiKey }: { apiKey: string }): string {
-  // JSON.stringify escapes the key safely for inline literal injection (D-11).
-  const escapedKey = JSON.stringify(apiKey);
+  // JSON.stringify produces a double-quoted JS string literal. The surrounding
+  // HTML attribute must therefore use single quotes so Alpine sees a valid call
+  // `uploadForm("key")` rather than `uploadForm(` followed by a stray quote.
+  // We additionally HTML-escape any single quote that could appear in the key
+  // to keep the attribute boundary intact (D-11).
+  const escapedKey = JSON.stringify(apiKey).replace(/'/g, "&#39;");
 
   return `<!doctype html>
 <html lang="de">
@@ -20,11 +24,12 @@ export function renderUploadPage({ apiKey }: { apiKey: string }): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>auto-archive</title>
   <link rel="stylesheet" href="/static/style.css">
-  <script defer src="/static/alpine.min.js"></script>
+  <!-- upload.js must load before alpine so window.uploadForm exists when Alpine evaluates x-data -->
   <script defer src="/static/upload.js"></script>
+  <script defer src="/static/alpine.min.js"></script>
 </head>
 <body>
-  <main class="page" x-data="uploadForm(${escapedKey})">
+  <main class="page" x-data='uploadForm(${escapedKey})'>
 
     <!-- Error banner — shown above the form on XHR errors -->
     <div class="error-banner" x-show="errorMessage" x-text="errorMessage" role="alert" aria-live="assertive"></div>
