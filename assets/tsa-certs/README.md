@@ -8,10 +8,8 @@ remains possible without depending on the live TSA service.
 | File | Provider | Endpoint | Phase / Plan |
 |------|----------|----------|--------------|
 | `dfn.pem` | DFN-TSA (Deutsches Forschungsnetz) | https://zeitstempel.dfn.de | 01-01 (added), 01-02 (kept as primary) |
-| `freetsa.pem` | FreeTSA | https://freetsa.org/tsr | 01-02 (fallback) |
-| `digicert.pem` | DigiCert / rfc3161.ai.moda | TBD | 01-02 (tertiary) |
-
-Plan 01-01 commits only `dfn.pem`. The other chains arrive with Plan 01-02.
+| `freetsa.pem` | FreeTSA | https://freetsa.org/tsr | 01-02 (added — fallback) |
+| `digicert.pem` | DigiCert | http://timestamp.digicert.com | 01-02 (added — tertiary) |
 
 ## Source URLs
 
@@ -135,8 +133,77 @@ service currently signs with. Re-run the procedure when DFN rotates certs.
 
 ### freetsa.pem
 
-_Added in Plan 01-02._
+Chain (in PEM order): **single self-signed root** (`FreeTSA Root CA`). FreeTSA
+publishes a flat single-CA model — the TSA signing cert (`www.freetsa.org`,
+OU=TSA) is signed directly by the root and is embedded in every TSR, so the
+CA file contains only the root.
+
+Source: `https://freetsa.org/files/cacert.pem` (canonical publication).
+
+```
+Cert 0 (root, self-signed) — Free TSA Root CA
+  subject:     O=Free TSA, OU=Root CA, CN=www.freetsa.org, emailAddress=busilezas@gmail.com, L=Wuerzburg, ST=Bayern, C=DE
+  issuer:      (self)
+  sha256:      A6:37:9E:7C:EC:C0:5F:AA:3C:BF:07:60:13:D7:45:E3:27:BB:BA:A3:8C:0B:9A:F2:24:69:D4:70:1D:18:AA:BC
+```
+
+Signing cert (embedded in every TSR, recorded for audit):
+
+```
+Signing cert — Free TSA www.freetsa.org (OU=TSA)
+  subject:     O=Free TSA, OU=TSA, description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services, CN=www.freetsa.org, emailAddress=busilezas@mailbox.org, L=Wuerzburg, C=DE, ST=Bayern
+  issuer:      O=Free TSA, OU=Root CA, CN=www.freetsa.org, emailAddress=busilezas@gmail.com, L=Wuerzburg, ST=Bayern, C=DE
+  sha256:      32:E8:41:A9:5C:C1:16:41:01:FF:DE:41:29:8E:F2:FC:75:C1:C4:37:2E:F0:95:E8:8A:6B:BD:47:DF:B1:91:FC
+```
+
+**Live verification proof** (executed 2026-05-17 against live https://freetsa.org/tsr):
+
+```
+$ openssl ts -verify -in freetsa.tsr -queryfile query.tsq -CAfile assets/tsa-certs/freetsa.pem
+Verification: OK
+```
+
+FreeTSA round-trip latency observed: ~650 ms (single sample, no SLA).
 
 ### digicert.pem
 
-_Added in Plan 01-02._
+Chain (in PEM order): **intermediate → root**:
+- `DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1` (issuing intermediate)
+- `DigiCert Trusted Root G4` (self-signed root, fetched from `https://cacerts.digicert.com/DigiCertTrustedRootG4.crt.pem`)
+
+The TSA signing cert (`DigiCert SHA256 RSA4096 Timestamp Responder 2025 1`)
+is embedded in every TSR and is intentionally NOT included here.
+
+```
+Cert 0 (intermediate) — DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1
+  subject:     C=US, O=DigiCert, Inc., CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1
+  issuer:      C=US, O=DigiCert Inc, OU=www.digicert.com, CN=DigiCert Trusted Root G4
+  sha256:      CA:0B:15:54:EC:D9:01:EA:19:DC:AD:87:49:E9:F2:64:8C:8D:6D:FC:EA:1A:DD:9D:2C:21:09:41:5B:B8:2C:CD
+
+Cert 1 (root, self-signed) — DigiCert Trusted Root G4
+  subject:     C=US, O=DigiCert Inc, OU=www.digicert.com, CN=DigiCert Trusted Root G4
+  issuer:      (self)
+  sha256:      55:2F:7B:DC:F1:A7:AF:9E:6C:E6:72:01:7F:4F:12:AB:F7:72:40:C7:8E:76:1A:C2:03:D1:D9:D2:0A:C8:99:88
+```
+
+Signing cert (embedded in TSRs, recorded for audit):
+
+```
+Signing cert — DigiCert SHA256 RSA4096 Timestamp Responder 2025 1
+  subject:     C=US, O=DigiCert, Inc., CN=DigiCert SHA256 RSA4096 Timestamp Responder 2025 1
+  issuer:      C=US, O=DigiCert, Inc., CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1
+  sha256:      4A:A0:3F:A2:2C:D7:5C:84:C5:5C:93:8F:82:8E:67:6B:9C:AE:CA:B3:3F:E3:6D:26:9A:A3:34:F1:46:11:0A:33
+```
+
+**Live verification proof** (executed 2026-05-17 against live http://timestamp.digicert.com):
+
+```
+$ openssl ts -verify -in digicert.tsr -queryfile query.tsq -CAfile assets/tsa-certs/digicert.pem
+Verification: OK
+```
+
+DigiCert round-trip latency observed: ~346 ms (single sample, no SLA).
+
+**Note:** DigiCert is reached over plain HTTP (not HTTPS). The TSR is
+end-to-end signed so TLS is defense-in-depth only; the pre-finalization
+`verifyTsr` step in `src/lib/tsa.ts` is the actual integrity guarantee.

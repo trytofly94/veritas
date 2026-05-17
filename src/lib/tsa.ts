@@ -8,12 +8,34 @@ const execFile = promisify(execFileCb);
 
 /** Thrown when every TSA in the configured fallback chain fails. */
 export class AllTsasFailed extends Error {
+  /** Providers attempted, in order, that all failed. */
+  public readonly chain: TsaProvider[];
   constructor(public attempts: { provider: TsaProvider; error: string }[]) {
     super(
       `All TSAs failed: ${attempts.map((a) => `${a.provider}=${a.error}`).join("; ")}`,
     );
     this.name = "AllTsasFailed";
+    this.chain = attempts.map((a) => a.provider);
   }
+}
+
+export interface FallbackResult {
+  provider: TsaProvider;
+  tsq: Buffer;
+  tsr: Buffer;
+  attestedAt: string;
+  /** Providers attempted in order, including the one that succeeded last. */
+  fallbackChain: TsaProvider[];
+  /** Absolute path to the CA cert chain to copy into the bundle. */
+  caCertPath: string;
+}
+
+export async function requestTimestampWithFallback(
+  _sha256Hex: string,
+): Promise<FallbackResult> {
+  throw new Error(
+    "requestTimestampWithFallback: not yet implemented (Plan 01-02 RED)",
+  );
 }
 
 /** Per-TSA outbound HTTP timeout. */
