@@ -1,0 +1,29 @@
+{
+  "name": "auto-archive",
+  "version": "0.1.0",
+  "description": "Self-hosted RFC 3161 archive — court-grade file archival with SHA-256 + timestamping",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "asn1js": "^3.0.5",
+    "hono": "^4.6.0",
+    "mime-types": "^2.1.35",
+    "pkijs": "^3.2.4",
+    "ulid": "^2.3.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
