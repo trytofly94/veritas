@@ -224,6 +224,22 @@ All Phase 1 suites pass after migration:
 - `requireSessionPage` middleware ready for Plan 04's page route guards
 - All SEC-01 and UPLOAD-01 requirements satisfied
 
+## Self-Check: PASSED
+
+All key files exist on disk:
+- src/middleware/apiKey.ts: FOUND
+- src/middleware/session.ts: FOUND
+- src/middleware/authOrApiKey.ts: FOUND
+- tests/e2e/auth.test.ts: FOUND
+- src/server.ts: FOUND
+- src/index.ts: FOUND
+- src/routes/upload.ts: FOUND
+
+All task commits exist in git log:
+- 489b145: feat(02-03) three auth middlewares + wire createApp(deps)
+- bcf0073: feat(02-03) upload route rewire + e2e harness migration
+- 416cea4: fix(02-03) migrate verify-script test + container config to Phase 2 auth
+
 ---
 *Phase: 02-http-api-web-upload*
 *Completed: 2026-05-17*
