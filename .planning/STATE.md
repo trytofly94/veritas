@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Plan 01-01 complete (walking skeleton — DFN happy path GREEN)
-last_updated: "2026-05-17T00:24:51.879Z"
+last_updated: "2026-05-17T13:07:12.034Z"
 last_activity: 2026-05-17
 progress:
   total_phases: 3
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-16)
 
 Phase: 01 (core-archive-engine) — EXECUTING
 Plan: 3 of 3 (01-01 complete; 01-02 next)
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-17
 
 Progress: [███████░░░] 67%
@@ -74,9 +74,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 1: Confirm DFN-TSA HTTP endpoint reachability from inside Docker on Unraid before committing as primary
+- Phase 1: ~~Confirm DFN-TSA HTTP endpoint reachability from inside Docker on Unraid before committing as primary~~ **RESOLVED 2026-05-17** — verified on Unraid 192.168.178.30; `tsa_provider="dfn"` observed on first attempt, fallback chain `["dfn"]`. See `.planning/phases/01-core-archive-engine/01-UNRAID-VERIFY.md`.
 - Phase 1: Validate chattr +i behavior on Unraid XFS; default to chmod 444 regardless
 - Phase 2: Integration-test Hono bodyLimit vs Cloudflare edge behavior with >100 MB file before issuing iOS Shortcut credentials
+- Phase 2 (operational follow-up from 01-03 Unraid verify): Parameterise host port in `docker-compose.yml` via `${HOST_PORT:-3000}` — port 3000 was occupied by gluetun on the Unraid host, required manual remap to 3300. See `01-UNRAID-VERIFY.md` Deviation 1.
+- Phase 2 (operational follow-up from 01-03 Unraid verify): Bind-mounted `./data` directory created as root has uid mismatch with container (uid 10001). Worked around with `chown -R 10001:10001 ./data`. README "Deploy to Unraid" section should mandate the chown step explicitly, or the entrypoint should attempt it automatically. See `01-UNRAID-VERIFY.md` Deviation 2.
 
 ## Deferred Items
 
