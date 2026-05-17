@@ -63,6 +63,12 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
     let fileSeen = false;
     let truncated = false;
     let settled = false;
+    // CR-01: track the per-file pipeline() promise so bb.on("close") can
+    // await it before resolving. Without this, on small uploads bb fires
+    // "close" before the WriteStream has flushed, and the route hashes a
+    // partial file — breaking the forensic invariant that the bundle's
+    // SHA-256 equals the bytes received.
+    let writePromise: Promise<void> | undefined;
 
     const cleanup = async () => {
       if (tempPath) {
@@ -93,7 +99,10 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
       fileStream.on("limit", () => {
         truncated = true;
       });
-      pipeline(fileStream, out).catch((err) => fail(err));
+      writePromise = pipeline(fileStream, out);
+      // Suppress unhandled-rejection; the real handling happens in
+      // bb.on("close") (success path) or fail() (early-error path).
+      writePromise.catch(() => {});
     });
 
     bb.on("field", (fieldname, value) => {
@@ -121,13 +130,23 @@ function streamMultipart(req: IncomingMessage): Promise<ParsedUpload> {
         return;
       }
       validatedLabel = parsed.data;
-      settled = true;
-      resolve({
-        filename: filename!,
-        tempPath: tempPath!,
-        sizeBytes,
-        label: validatedLabel,
-      });
+      // CR-01: await the per-file pipeline before resolving so the temp
+      // file is fully flushed to disk by the time the route hashes it.
+      const capturedFilename = filename!;
+      const capturedTempPath = tempPath!;
+      const finalLabel = validatedLabel;
+      (writePromise ?? Promise.resolve())
+        .then(() => {
+          if (settled) return;
+          settled = true;
+          resolve({
+            filename: capturedFilename,
+            tempPath: capturedTempPath,
+            sizeBytes,
+            label: finalLabel,
+          });
+        })
+        .catch((err) => fail(err as Error));
     });
 
     req.on("error", (err) => fail(err));
