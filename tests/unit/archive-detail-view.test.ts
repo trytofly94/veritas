@@ -210,6 +210,21 @@ describe("renderArchiveDetailPage — integration with real buildMetadata()", ()
   });
 });
 
+describe("B-3 regression — Alpine init race on archive-detail", () => {
+  // Iter-3 milestone validation found that loading alpine.min.js BEFORE
+  // archive-detail.js makes Alpine fire `alpine:init` before
+  // archive-detail.js registers Alpine.data('verifyIntegrity'/'copyState'),
+  // breaking the in-browser verify button. Lock the correct order in.
+  it("loads archive-detail.js before alpine.min.js in the rendered HTML", () => {
+    const html = renderArchiveDetailPage(vm());
+    const archiveDetailScriptIdx = html.indexOf('src="/static/archive-detail.js"');
+    const alpineScriptIdx = html.indexOf('src="/static/alpine.min.js"');
+    expect(archiveDetailScriptIdx).toBeGreaterThanOrEqual(0);
+    expect(alpineScriptIdx).toBeGreaterThanOrEqual(0);
+    expect(archiveDetailScriptIdx).toBeLessThan(alpineScriptIdx);
+  });
+});
+
 describe("renderNotFoundPage", () => {
   it("contains 'Eintrag nicht gefunden.' and a back link", () => {
     const html = renderNotFoundPage();

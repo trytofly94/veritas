@@ -101,8 +101,9 @@ export function renderArchiveDetailPage(vm: ArchiveDetailViewModel): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${safeFilename} — auto-archive</title>
   <link rel="stylesheet" href="/static/style.css">
-  <script defer src="/static/alpine.min.js"></script>
+  <!-- archive-detail.js must load before alpine so window.verifyIntegrity / window.copyState exist when Alpine fires alpine:init -->
   <script defer src="/static/archive-detail.js"></script>
+  <script defer src="/static/alpine.min.js"></script>
 </head>
 <body>
   <main class="page archive-detail-page">
