@@ -16,7 +16,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 CONTAINER_NAME="auto-archive"
-PORT="3000"
+PORT="3700"
 HEALTH_URL="http://127.0.0.1:${PORT}/health"
 UPLOAD_URL="http://127.0.0.1:${PORT}/api/upload"
 FIXTURE="tests/fixtures/hello.txt"

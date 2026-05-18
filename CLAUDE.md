@@ -94,13 +94,37 @@ Ein selbst gehostetes System zur automatisierten, gerichtssicheren Archivierung 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+- **Module style:** ESM with explicit `.js` import extensions (TS source, runtime ESM). Imports always reference compiled `.js` paths even from `.ts` files.
+- **Naming:** snake_case for on-disk artefacts (`metadata.json` keys, env vars, DB columns). camelCase for TS identifiers. Routes are kebab-case.
+- **Error envelope:** all JSON error responses share `{error:true, code:"UPPER_SNAKE", message:"…"}` via `errorResponse()` in `src/middleware/errorEnvelope.ts`.
+- **Page vs API errors (W3 split):** session-protected page routes 303 to `/login?next=…` on auth fail and render HTML error pages on 4xx/5xx. JSON API routes return the error envelope.
+- **Auth boundaries:** `apiKeyMiddleware` (X-API-Key, timing-safe), `requireSessionPage` (303 redirect), `requireSessionApi` (401 envelope), `authOrApiKey` (download accepts either). All session paths derive their HMAC secret from `deps.config.sessionSecret` — never read `process.env` directly inside middleware.
+- **Config loading:** `loadConfig()` (`src/lib/config.ts`) fail-fast on missing/short env vars before port bind (D-06). Pass through `AppDeps` injection — do not re-read env elsewhere.
+- **Bundle immutability:** all bundle files written with mode `444` after atomic finalize (D-07). `verify.sh` is mode `555`.
+- **TSA fallback chain:** DFN → FreeTSA → DigiCert. Pre-finalization `openssl ts -verify`. `metadata.tsa_provider` records the actual signer; `tsa_fallback_chain` (JSON array) records the attempted chain.
+- **IDs:** ULIDs for archive entries (lexicographically sortable by time).
+- **Metadata schema is the contract.** `buildMetadata()` (`src/lib/metadata.ts`) is the single source of truth for `metadata.json` keys. Views and DB readers MUST consume those exact keys. The integration test at `tests/unit/archive-detail-view.test.ts:170` pipes real `buildMetadata()` output through the detail renderer as a fixture-drift guard — keep it green.
+- **Commits:** conventional-commit prefixes scoped to phase/plan, e.g. `feat(03-02): …`, `fix(03-02): …`, `docs(03-02): …`.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+Single Node.js (22-bookworm-slim) container, Hono HTTP framework, SQLite via Drizzle ORM, server-rendered HTML + vendored Alpine.js for the browser UI. Three logical layers:
+
+1. **Submission paths** → `POST /api/upload` (`X-API-Key`, streaming multipart via busboy). Pipeline: stream → SHA-256 hash + temp file → `requestTimestampWithFallback()` (DFN → FreeTSA → DigiCert with per-provider timeout, pre-finalize `openssl ts -verify`) → `writeBundle()` (atomic rename + `chmod 444`) → SQLite manifest insert. Browser web form (`GET /`) is the same endpoint, called via XHR with the API key injected into the page HTML (D-11 round-trip).
+
+2. **Auth + session** → `POST /login` (timing-safe password compare) → signed `session=<hmac>` cookie (`HttpOnly; Secure; SameSite=Lax`). All `/archive*` pages gated by `requireSessionPage`, all `/api/archive/*/verify` by `requireSessionApi`. `GET /api/download/:id` accepts either session cookie OR `X-API-Key`. Single HMAC source: `verifySessionCookie` in `src/lib/sessionCookie.ts`.
+
+3. **Archive browser** → `GET /archive` lists rows from `archiveEntries` (Drizzle) ordered by `created_at` desc. `GET /archive/:id` reads `metadata.json` from disk and renders 9 metadata rows. `POST /api/archive/:id/verify` re-streams the original through SHA-256 and re-checks the TSR against the bundled CA chain — returns `{ok:true|false, reason?}`.
+
+**Disk layout** (`./data/` bind-mount):
+- `data/<ULID>/` — one directory per archived entry: `original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `tsa-cacert.pem`, `metadata.json`, `verify.sh` (7 files on disk; downloads add `VERIFY.md` to make 8 in the ZIP).
+- `data/manifest.sqlite` — Drizzle-managed table `archiveEntries` (id, hash, label, mime, size, source_ip, created_at, tsa_provider, tsa_attested_at, tsa_fallback_chain, bundle_dir, …).
+
+**Hardening:** read-only rootfs, all caps dropped, `no-new-privileges`, tmpfs `/tmp` (compose `security_opt`). Non-root `app` user (uid 10001). Port 3700 bound to loopback only — external exposure via Cloudflare Tunnel.
+
+**Test surface:** vitest for unit + e2e. E2E suite hits a real `createApp()` with a temp DATA_DIR (no Docker) and does live TSA round trips against DFN/FreeTSA. Container-level smoke is `scripts/smoke-container.sh` (also wrapped by a vitest gate).
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->

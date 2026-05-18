@@ -2,50 +2,65 @@
 
 Self-hosted, court-grade file archive. Every submitted file is hashed
 (SHA-256) and timestamped via RFC 3161 (DFN → FreeTSA → DigiCert fallback)
-into a tamper-proof bundle on a bind-mounted volume.
+into a tamper-proof bundle on a bind-mounted volume. A password-protected
+browser UI lists every entry, shows full metadata, and verifies integrity
+on demand. Download bundles ship as ZIPs with a self-contained verifier
+and a German legal framing (`VERIFY.md`, § 286 ZPO).
 
-> **⚠ Phase 1 has no authentication. DO NOT publish port 3000 to the public
-> internet.** Phase 2 will add API-key middleware in front of the same
-> endpoint. Until then, reach the service only over your LAN (or behind an
-> authenticated reverse proxy such as Cloudflare Tunnel + Authelia).
+**Submission paths:** iOS Shortcuts, n8n, curl (all via `X-API-Key`), or
+the browser web form (session login).
+
+**Milestone v1.0 status:** all 16 requirements satisfied, all 5 E2E flows
+wired, all 3 phases verified — see `.planning/v1.0-MILESTONE-AUDIT.md`.
+
+> **Auth is mandatory.** `/api/upload` requires `X-API-Key`; `/archive*`
+> and `/api/archive/*/verify` require a session cookie from `POST /login`.
+> `GET /api/download/:id` accepts either. The compose file binds port 3700
+> to **loopback only** by default — put any external exposure behind
+> Cloudflare Tunnel (or another authenticated reverse proxy).
 
 ## Prerequisites
 
 - Docker 24+ with the Compose v2 plugin (`docker compose ...`)
-- `openssl` on the host (used to run `verify.sh` against any produced bundle —
-  the container ships its own openssl for the service itself)
+- `openssl` on the host (used by `verify.sh` against any produced bundle)
 - `curl` on the host for ad-hoc submissions (optional)
+- A `.env` file or shell environment with `API_KEY`, `SESSION_SECRET`,
+  `ADMIN_PASSWORD` set (see [Configuration](#configuration))
 
 ## Quickstart (local Docker)
 
 ```sh
-# 1. Build + start the container in the background.
+# 1. Provide secrets (or rely on the smoke-test defaults baked into compose).
+cat > .env <<'EOF'
+API_KEY=$(openssl rand -hex 32)
+SESSION_SECRET=$(openssl rand -hex 32)
+ADMIN_PASSWORD=$(openssl rand -base64 24)
+EOF
+
+# 2. Build + start.
 docker compose up -d --build
 
-# 2. Health check.
-curl -s http://127.0.0.1:3000/health
+# 3. Health check.
+curl -s http://127.0.0.1:3700/health
 # → {"ok":true}
 
-# 3. Submit a file. The bundle directory lands on ./data on the host.
-curl -F file=@tests/fixtures/hello.txt -F label=smoke \
-  http://127.0.0.1:3000/api/upload
+# 4. Submit a file via the API.
+curl -H "X-API-Key: $(grep '^API_KEY=' .env | cut -d= -f2)" \
+  -F file=@tests/fixtures/hello.txt -F label=smoke \
+  http://127.0.0.1:3700/api/upload
 # → 201 {"id":"01J…","bundle_path":"/data/01J…"}
 
-# 4. Inspect the bundle on the host.
-ls -la ./data/<id>/
-#   original.txt    original.sha256  original.tsq    original.tsr
-#   tsa-cacert.pem  metadata.json    verify.sh
-
-# 5. Verify the bundle independently (host openssl + host sha256sum).
-bash ./data/<id>/verify.sh
-# → VERIFICATION SUCCESS
+# 5. Browse via the web UI.
+open http://127.0.0.1:3700           # upload form (API key injected from server)
+open http://127.0.0.1:3700/login     # session login
+open http://127.0.0.1:3700/archive   # browse all entries
 ```
 
 ### File ownership
 
 Files written into `./data` on the host are owned by **uid 10001** — the
-non-root `app` user inside the container (Threat T-03-01 mitigation). If you
-need a different owner (e.g. Unraid's default `nobody:users` = `99:100`):
+non-root `app` user inside the container (Threat T-03-01 mitigation). If
+you need a different owner (e.g. Unraid's default `nobody:users` = `99:100`):
 
 ```sh
 sudo chown -R 99:100 ./data
@@ -70,38 +85,80 @@ docker compose down                   # stops + removes container, keeps ./data
 docker compose down -v                # also removes the (empty) volume metadata
 ```
 
-## Deploy to Unraid
+## HTTP API
 
-The Phase 1 deployment target is the Unraid server at `192.168.178.30`. The
-image is identical to the local build — only the bind-mount path changes.
+All write-paths and the browser UI are auth-gated.
 
-> **Phase 1 must NOT be reachable from the public internet.** Bind port 3000
-> to the LAN only and put any external exposure (Cloudflare Tunnel etc.)
-> behind authenticated proxy in a later phase.
+| Method & Path                     | Auth                       | Purpose |
+| --------------------------------- | -------------------------- | ------- |
+| `GET /health`                     | none                       | Liveness probe (`{ok:true}`) |
+| `GET /`                           | none                       | Web upload form (API key injected into HTML) |
+| `POST /api/upload`                | `X-API-Key`                | Multipart upload → RFC 3161 timestamped bundle |
+| `POST /login`                     | password                   | Form login, sets `session=…; HttpOnly; Secure; SameSite=Lax` |
+| `GET /login`                      | none                       | Login page |
+| `POST /logout`                    | session                    | Clears session cookie |
+| `GET /archive`                    | session                    | Chronological list (filename / date / type / TSA-status) |
+| `GET /archive/:id`                | session                    | Detail page with all 9 metadata fields + Verify button |
+| `POST /api/archive/:id/verify`    | session                    | Re-hashes original on disk + checks TSR → `{ok:true \| false, reason?}` |
+| `GET /api/download/:id`           | `X-API-Key` OR session     | Streams ZIP bundle (8 files incl. `VERIFY.md`) |
+
+Unauthenticated requests to a session-protected page get a 303 to
+`/login?next=…`; the same on a JSON endpoint gets a 401 envelope
+`{error:true, code:"UNAUTHORIZED"}`. Wrong/missing `X-API-Key` also gets a
+401 envelope (timing-safe comparison).
+
+## Deploy to Unraid + Cloudflare Tunnel
+
+The production target is the Unraid server at `192.168.178.30`, exposed
+externally through Cloudflare Tunnel. The image is identical to the local
+build — only the bind-mount path and the secret material change.
 
 ### One-time procedure
 
 ```sh
 # 1. On your laptop — push the repo to Unraid's appdata share.
 rsync -avz --delete \
-  --exclude node_modules --exclude data --exclude .git \
+  --exclude node_modules --exclude data --exclude .git --exclude .env \
   ./ root@192.168.178.30:/mnt/user/appdata/auto-archive/
 
-# 2. SSH in and start the service.
+# 2. SSH in, drop a real .env file in place, and start.
 ssh root@192.168.178.30
 cd /mnt/user/appdata/auto-archive
 mkdir -p data
+cat > .env <<EOF
+API_KEY=<paste-strong-random-32+-bytes>
+SESSION_SECRET=<paste-strong-random-32+-bytes>
+ADMIN_PASSWORD=<paste-passphrase>
+EOF
+chmod 600 .env
 docker compose build
 docker compose up -d
-docker compose logs --tail=50 auto-archive     # confirm "listening on …:3000"
+docker compose logs --tail=50 auto-archive     # confirm "listening on …:3700"
 ```
+
+### Cloudflare Tunnel exposure
+
+The compose file binds port 3700 to `127.0.0.1:3700` only — that's
+intentional. Expose externally by pointing a Cloudflare Tunnel ingress
+rule at `http://localhost:3700` on the same Unraid host. The browser UI
+runs over Cloudflare's HTTPS terminator, which is what the session cookie's
+`Secure` flag expects.
+
+> **LAN smoke-test caveat.** The session cookie is currently set with
+> `Secure` unconditionally. That means logins over plain HTTP — e.g.
+> directly to `http://192.168.178.30:3700/login` over LAN — will fail
+> silently (browser drops the cookie). API submissions still work over LAN
+> because they use `X-API-Key`, not cookies. Track / fix via a
+> `COOKIE_SECURE` env var (see `.planning/v1.0-MILESTONE-AUDIT.md` tech
+> debt).
 
 ### Production smoke test (from your laptop)
 
 ```sh
-# Submit a file directly to the Unraid host.
-curl -F file=@tests/fixtures/hello.txt -F label=unraid-smoke \
-  http://192.168.178.30:3000/api/upload
+# Submit via X-API-Key (curl can stay on LAN here — only cookies are blocked).
+curl -H "X-API-Key: $API_KEY" \
+  -F file=@tests/fixtures/hello.txt -F label=unraid-smoke \
+  http://192.168.178.30:3700/api/upload
 # Capture the returned id.
 
 # SSH back in and verify the bundle on the real Unraid filesystem.
@@ -111,28 +168,26 @@ ls -la data/<id>/                              # expect 7 files
 cat data/<id>/metadata.json | jq .tsa_provider # records which TSA signed
 bash data/<id>/verify.sh                       # expect VERIFICATION SUCCESS
 
-# Bundle-isolation check (CONCERN-4) — nothing should live inside the container.
+# Bundle-isolation check — nothing should live inside the container.
 docker compose exec -T auto-archive sh -c '[ ! -e /app/data ]' && echo "isolated"
-
-# Stop + confirm data survives.
-docker compose down
-ls -la data/<id>/                              # bundle still present
 ```
 
 ### Unraid-specific notes
 
-- Bundle files inherit uid 10001 from the container's `app` user. If you want
-  Unraid's share user to own them, run `chown -R 99:100 ./data` after the
-  first submission (or after each one — the bundle becomes immutable at
-  mode `444` regardless).
-- Outbound HTTPS to DFN (`zeitstempel.dfn.de`), FreeTSA (`freetsa.org`), and
-  DigiCert (`timestamp.digicert.com`) must work from inside the Docker bridge.
-  If DFN is unreachable, the fallback chain transparently picks FreeTSA then
-  DigiCert — `metadata.tsa_provider` records which one actually signed.
-- The container declares `restart: unless-stopped`, so it survives reboots
-  automatically once started.
+- Bundle files inherit uid 10001 from the container's `app` user. If you
+  want Unraid's share user to own them, run `chown -R 99:100 ./data`
+  (cosmetic — bundles become immutable at mode `444` regardless).
+- Outbound HTTPS to DFN (`zeitstempel.dfn.de`), FreeTSA (`freetsa.org`),
+  and DigiCert (`timestamp.digicert.com`) must work from inside the Docker
+  bridge. If DFN is unreachable, the fallback chain transparently picks
+  FreeTSA then DigiCert — `metadata.tsa_provider` records which one
+  actually signed.
+- The container declares `restart: unless-stopped`, so it survives
+  reboots automatically once started.
 
 ## What's inside a bundle
+
+**On disk (`./data/<id>/`, 7 files):**
 
 | File              | Purpose                                                   |
 | ----------------- | --------------------------------------------------------- |
@@ -144,39 +199,62 @@ ls -la data/<id>/                              # bundle still present
 | `metadata.json`   | 12-field snake_case envelope (id, hash, ip, provider, …)  |
 | `verify.sh`       | Self-contained verifier (mode 555) — POSIX sh, no network |
 
-All other files are written with mode `444` after the bundle is finalized
+**In the download ZIP (`GET /api/download/:id`, 8 files):**
+All seven of the above, plus `VERIFY.md` — a German legal framing referencing
+§ 286 ZPO (Beweiswürdigung, RFC 3161 als unterstützendes Beweismittel).
+
+All disk files are written with mode `444` after the bundle is finalized
 (D-07). Tampering with any file causes `verify.sh` to exit non-zero with a
-specific failure string (`SHA256 MISMATCH` or `TIMESTAMP VERIFICATION FAILED`).
+specific failure string (`SHA256 MISMATCH` or `TIMESTAMP VERIFICATION
+FAILED`).
 
 ## Configuration
 
-| Env var                | Default                          | Purpose                           |
-| ---------------------- | -------------------------------- | --------------------------------- |
-| `DATA_DIR`             | `/data` (in container)           | Root for ULID bundle directories  |
-| `PORT`                 | `3000`                           | HTTP listen port                  |
-| `TSA_DFN_ENDPOINT`     | `http://zeitstempel.dfn.de`      | DFN TSA URL                       |
-| `TSA_FREETSA_ENDPOINT` | `https://freetsa.org/tsr`        | FreeTSA URL                       |
-| `TSA_DIGICERT_ENDPOINT`| `http://timestamp.digicert.com`  | DigiCert TSA URL                  |
-| `TSA_TIMEOUT_MS`       | `10000`                          | Per-TSA request timeout           |
+| Env var                  | Default                          | Purpose                                                |
+| ------------------------ | -------------------------------- | ------------------------------------------------------ |
+| `API_KEY` *(required)*   | —                                | `X-API-Key` value for `/api/upload` and `/api/download` |
+| `SESSION_SECRET` *(req.)*| —                                | HMAC secret for session cookies (≥32 bytes)            |
+| `ADMIN_PASSWORD` *(req.)*| —                                | Password for the browser `/login` page                 |
+| `DATA_DIR`               | `/data` (in container)           | Root for ULID bundle directories                       |
+| `MANIFEST_DB_PATH`       | `/data/manifest.sqlite`          | SQLite manifest path                                   |
+| `PORT`                   | `3700`                           | HTTP listen port                                       |
+| `MAX_UPLOAD_BYTES`       | `104857600` (100 MiB)            | Per-upload size limit                                  |
+| `TSA_DFN_ENDPOINT`       | `http://zeitstempel.dfn.de`      | DFN TSA URL                                            |
+| `TSA_FREETSA_ENDPOINT`   | `https://freetsa.org/tsr`        | FreeTSA URL                                            |
+| `TSA_DIGICERT_ENDPOINT`  | `http://timestamp.digicert.com`  | DigiCert TSA URL                                       |
+| `TSA_TIMEOUT_MS`         | `10000`                          | Per-TSA request timeout                                |
+
+The server fails fast on startup if `API_KEY`, `SESSION_SECRET`, or
+`ADMIN_PASSWORD` are missing or `SESSION_SECRET` is shorter than 32 bytes.
 
 ## Development
 
 ```sh
 npm install
-npm run dev           # tsx watch
+npm run dev           # tsx watch (requires .env.local)
 npm test              # vitest (unit + e2e; real TSA round trips)
 npm run build         # tsc → dist/
 ```
 
+`.env.local` mirrors the compose env block (`API_KEY`, `SESSION_SECRET`,
+`ADMIN_PASSWORD`, `DATA_DIR`, `MANIFEST_DB_PATH`).
+
 ## Project layout
 
 ```
-src/                  Hono server + lib (hash, tsa, bundle, metadata)
-assets/tsa-certs/     Committed CA chains for DFN, FreeTSA, DigiCert
-assets/verify-template.sh   Source for the bundled verify.sh
-tests/                Vitest unit + e2e suites
-scripts/              Operator scripts (smoke-container.sh)
-.planning/            GSD workflow artifacts (phases, plans, summaries)
-Dockerfile            Multi-stage build → node:22-bookworm-slim runtime
-docker-compose.yml    Single-service compose stack (container_name=auto-archive)
+src/
+  server.ts                Hono app factory (createApp)
+  routes/                  upload, pages, login, archive, download
+  lib/                     hash, tsa, bundle, metadata, sessionCookie, …
+  middleware/              apiKey, requireSession, errorEnvelope
+  views/                   server-rendered HTML (upload, login, list, detail)
+  db/                      Drizzle schema, client, backfill
+  static/                  Alpine.js + upload.js + archive-detail.js + style.css
+assets/tsa-certs/          Committed CA chains for DFN, FreeTSA, DigiCert
+assets/verify-template.sh  Source for the bundled verify.sh (POSIX, mode 555)
+tests/                     Vitest unit + e2e suites (incl. real TSA round trips)
+scripts/                   Operator scripts (smoke-container.sh)
+.planning/                 GSD workflow artifacts (phases, plans, audits)
+Dockerfile                 Multi-stage build → node:22-bookworm-slim runtime
+docker-compose.yml         Single-service compose stack (container_name=auto-archive)
 ```

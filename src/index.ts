@@ -16,7 +16,7 @@ const db = openDb(config.manifestDbPath);
 await backfillManifest({ db, dataDir: config.dataDir });
 
 const app = createApp({ db, config });
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 3700);
 
 serve({ fetch: app.fetch, port }, (info) => {
   // eslint-disable-next-line no-console
