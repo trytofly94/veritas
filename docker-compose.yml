@@ -17,10 +17,11 @@ services:
       context: .
       dockerfile: Dockerfile
     image: auto-archive:phase1
-    ports:
-      # WR-02: bind to loopback ONLY by default. Use an authenticated reverse
-      # proxy (Caddy + Cloudflare Tunnel) for external access.
-      - "127.0.0.1:3000:3000"
+    # No host port mapping — container is only reachable via proxy-net
+    # (caddy-central → Cloudflare Tunnel). Internal port 3000 stays on
+    # the Docker bridge.
+    networks:
+      - proxy-net
     volumes:
       # Bind mount — bundle directories AND manifest.sqlite land on the host.
       - ./data:/data
@@ -50,3 +51,7 @@ services:
       # TSA_DIGICERT_ENDPOINT: http://timestamp.digicert.com
       # TSA_TIMEOUT_MS: "10000"
     restart: unless-stopped
+
+networks:
+  proxy-net:
+    external: true
