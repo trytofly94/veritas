@@ -17,9 +17,10 @@ services:
       context: .
       dockerfile: Dockerfile
     image: auto-archive:phase1
-    # No host port mapping — container is only reachable via proxy-net
-    # (caddy-central → Cloudflare Tunnel). Internal port 3000 stays on
-    # the Docker bridge.
+    # LAN access on port 3700 — use http://192.168.178.30:3700
+    # External access via caddy-central → Cloudflare Tunnel (proxy-net).
+    ports:
+      - "192.168.178.30:3700:3700"
     networks:
       - proxy-net
     volumes:
@@ -38,13 +39,15 @@ services:
       - no-new-privileges:true
     environment:
       DATA_DIR: /data
-      PORT: "3000"
+      PORT: "3700"
       MANIFEST_DB_PATH: /data/manifest.sqlite
       # Required auth env vars — supply via .env file or shell environment.
       # Defaults here are for smoke testing only; override in production.
       API_KEY: ${API_KEY:-smoke-test-api-key-change-in-production}
       SESSION_SECRET: ${SESSION_SECRET:-smoke-test-session-secret-32-bytes-yo}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-smoke-test-password}
+      # COOKIE_SECURE=false allows session cookies over plain HTTP (LAN access)
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       # Optional TSA endpoint overrides — uncomment to point at custom URLs.
       # TSA_DFN_ENDPOINT: http://zeitstempel.dfn.de
       # TSA_FREETSA_ENDPOINT: https://freetsa.org/tsr
