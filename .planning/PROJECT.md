@@ -1,8 +1,14 @@
 # auto-archive
 
+## Current State
+
+**Shipped:** v1.0 MVP (2026-05-18) — full end-to-end pipeline live on Unraid: HTTP API + web upload, DFN/FreeTSA/DigiCert fallback chain, browser archive viewer with integrity verify, downloadable verifiable ZIP bundle with § 286 ZPO legal framing.
+
+**Stack as built:** Node.js 22 + TypeScript + Hono + Drizzle/SQLite + vendored Alpine.js, served from a hardened `node:22-bookworm-slim` Docker container (read-only rootfs, all caps dropped, uid 10001).
+
 ## What This Is
 
-Ein selbst gehostetes System zur automatisierten, gerichtssicheren Archivierung von Dateien aller Art — mit RFC 3161 Zeitstempeln und SHA-256 Integritätsprüfung. Dateien können per iOS Shortcut, n8n-Webhook oder Web-Upload eingereicht werden und landen manipulationssicher auf dem eigenen Unraid-Server. Für Lennart und Familie/kleines Team.
+Ein selbst gehostetes System zur automatisierten, gerichtssicheren Archivierung von Dateien aller Art — mit RFC 3161 Zeitstempeln und SHA-256 Integritätsprüfung. Dateien können per iOS Shortcut, n8n-Webhook, curl oder Web-Upload eingereicht werden und landen manipulationssicher auf dem eigenen Unraid-Server. Für Lennart und Familie/kleines Team.
 
 ## Core Value
 
@@ -12,23 +18,26 @@ Jede archivierte Datei muss kryptografisch beweisbar zum Zeitpunkt der Einreichu
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Datei-Upload per HTTP-Endpunkt (für iOS Shortcut, n8n, curl) — v1.0
+- ✓ Web-Upload-Frontend (erreichbar von überall via Cloudflare Tunnel) — v1.0
+- ✓ SHA-256 Hash wird bei Eingang automatisch berechnet — v1.0
+- ✓ RFC 3161 Zeitstempel von DFN-TSA / FreeTSA / DigiCert angefordert und gespeichert — v1.0 (Fallback-Kette implementiert)
+- ✓ Strukturiertes Archiv pro Datei: original + .sha256 + .tsq + .tsr + metadata.json + verify.sh + tsa-cacert.pem — v1.0
+- ✓ Privates Archiv-Browser-Frontend (alle archivierten Einträge anzeigen) — v1.0 (Suche/Filter noch offen)
+- ✓ Verifikationsfunktion: Integrität einer Datei nachträglich prüfbar — v1.0 (Browser-Button + verify.sh)
+- ✓ Metadaten pro Einreichung: Absender (Label), Zeitpunkt, IP, Notiz — v1.0
+- ✓ Einfache Authentifizierung (API-Key für Uploads, HMAC-Session für Browser) — v1.0
+- ✓ Download-Bundle: 8-File ZIP mit VERIFY.md (§ 286 ZPO) — v1.0
+- ✓ Unterstützung aller Dateitypen — v1.0 (streaming multipart, kein Format-Lock)
+- ✓ Docker Container auf Unraid — v1.0 (live-verifiziert auf 192.168.178.30)
+- ✓ n8n-Integration: per X-API-Key Webhook — v1.0 (n8n-Setup separat)
 
 ### Active
 
-- [ ] Datei-Upload per HTTP-Endpunkt (für iOS Shortcut, n8n, curl)
-- [ ] Web-Upload-Frontend (erreichbar von überall via Cloudflare Tunnel)
-- [ ] SHA-256 Hash wird bei Eingang automatisch berechnet
-- [ ] RFC 3161 Zeitstempel von FreeTSA und/oder DFN-TSA angefordert und gespeichert
-- [ ] Strukturiertes Archiv pro Datei: original + .sha256 + .tsq + .tsr + metadata.json
-- [ ] Privates Archiv-Browser-Frontend (alle archivierten Einträge anzeigen, suchen, filtern)
-- [ ] Verifikationsfunktion: Integrität einer Datei nachträglich prüfbar
-- [ ] Metadaten pro Einreichung: Absender, Zeitpunkt, IP, Beschreibung/Notiz
-- [ ] Einfache Authentifizierung (API-Key für Uploads, Passwort-Schutz für Browser-Frontend)
-- [ ] Download-Bundle: ZIP mit original + Hash + TSR Token + verify-Script
-- [ ] Unterstützung aller Dateitypen (ZIP, PNG, PDF, JPEG, etc.)
-- [ ] Docker Container auf Unraid (saubere Isolation, einfaches Update)
-- [ ] n8n-Integration: n8n kann Dateien per Webhook einreichen
+- [ ] Suche/Filter im Archiv-Browser (Filename, Datum, Typ) — verschoben aus v1.0
+- [ ] `COOKIE_SECURE` env-var-Gate, damit Login über plain-HTTP LAN funktioniert (`http://192.168.178.30:3000`)
+- [ ] `POST /api/upload` 201-Response um `tsa_provider` + `tsa_attested_at` ergänzen (Web-Upload-Success-Card zeigt sonst leere TSA-Zeilen)
+- [ ] Runtime-Schema-Validation für `metadata.json` (zod statt `as unknown as` Cast)
 
 ### Out of Scope
 
@@ -61,10 +70,14 @@ Jede archivierte Datei muss kryptografisch beweisbar zum Zeitpunkt der Einreichu
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| RFC 3161 statt blockchain | EU-Standard, rechtlich anerkannt, kostenlos verfügbar | — Pending |
-| FreeTSA als primäre TSA | Kostenlos, RFC 3161-konform, seit Jahren etabliert | — Pending |
-| Dateisystem statt Datenbank für Storage | Einfachheit, direkte Verifikation, kein DB-overhead | — Pending |
-| Docker auf Unraid | Konsistent mit bestehendem Stack, einfaches Deployment | — Pending |
+| RFC 3161 statt blockchain | EU-Standard, rechtlich anerkannt, kostenlos verfügbar | ✓ Good (v1.0 — DFN+FreeTSA+DigiCert produzieren rechtskonforme TSRs) |
+| DFN-TSA primär, FreeTSA + DigiCert als Fallback | DFN ist auf deutscher Trust-List → stärkere Beweiskraft; FreeTSA/DigiCert sichern Verfügbarkeit | ✓ Good (v1.0 — Fallback-Kette mit `metadata.tsa_provider` + `tsa_fallback_chain` audit-trail) |
+| Dateisystem (ULID-Verzeichnisse) + SQLite-Manifest | Einfachheit + direkte Verifikation; SQLite nur als Index, Quelle der Wahrheit bleibt Disk | ✓ Good (v1.0 — Drizzle-ORM ohne async overhead, `metadata.json` ist die contract source-of-truth) |
+| Docker auf Unraid (node:22-bookworm-slim, NICHT Alpine) | Konsistent mit Stack; Alpine fehlt musl/native-module support | ✓ Good (v1.0 — read-only rootfs + dropped caps + uid 10001, live verifiziert) |
+| OpenSSL CLI via execFile statt PKI.js für RFC 3161 verify | PKI.js historisch CVE-belastet; OpenSSL ist Referenz-Implementierung | ✓ Good (v1.0 — pre-finalization `openssl ts -verify` blockt fehlerhafte TSRs vor Bundle-write) |
+| Hono statt Express | TypeScript-first, built-in multipart, kleiner | ✓ Good (v1.0 — komplette Route-Suite + busboy streaming + D-23 error envelope) |
+| Vendored Alpine.js statt React/Vue/Build-Step | 7 kB, kein Build, ausreichend für Archive-UI | ✓ Good (v1.0 — list + detail + verify components; iter-3 script-order bug 87beef0 als reminder dokumentiert) |
+| Page-vs-API auth split (303 redirect für Pages, JSON envelope für `/api/*`) | UX: Pages-Browser kennt nur Cookies; API-Clients erwarten JSON | ✓ Good (v1.0 — `requireSessionPage` vs `requireSessionApi`, `authOrApiKey` für Downloads) |
 
 ---
 ## Evolution
@@ -85,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-16 after initialization*
+*Last updated: 2026-05-18 after v1.0 milestone*

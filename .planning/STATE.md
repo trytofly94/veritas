@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: Awaiting next milestone
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-05-17T18:37:18.229Z"
-last_activity: 2026-05-17
+last_updated: "2026-05-18T08:30:55.119Z"
+last_activity: 2026-05-18 — Milestone v1.0 completed and archived
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-16)
 
 ## Current Position
 
-Phase: 03 (archive-browser) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-05-18 - Completed quick task 260518-dqv: Fix Alpine.js script load order on archive-detail page
-
-Progress: [██████████] 100%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-18 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -93,12 +91,19 @@ None yet.
 
 ## Deferred Items
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+Items acknowledged at milestone close on 2026-05-18 (yolo mode auto-acknowledge; both flagged items are stale audit artifacts, not real gaps):
+
+| Category | Item | Status | Deferred At | Note |
+|----------|------|--------|-------------|------|
+| quick_task | 260518-dqv-fix-alpine-js-script-load-order-on-archi | missing | 2026-05-18 | Task is actually complete — commit 87beef0; audit-open flagged because no SUMMARY in quick/ dir, but STATE.md "Quick Tasks Completed" row exists. |
+| uat_gap | phase-02 02-HUMAN-UAT.md | passed (0 pending) | 2026-05-18 | UAT closed via Chrome MCP, 0 pending scenarios; audit-open lists any phase with a UAT.md regardless of status. |
 
 ## Session Continuity
 
 Last session: 2026-05-17T18:36:54.026Z
 Stopped at: Phase 3 UI-SPEC approved
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
