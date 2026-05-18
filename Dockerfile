@@ -47,6 +47,7 @@ WORKDIR /app
 COPY --from=deps  /app/node_modules ./node_modules
 COPY --from=build /app/dist         ./dist
 COPY assets ./assets
+COPY src/db/migrations ./src/db/migrations
 COPY package.json ./
 
 # Bundle output volume — bind-mounted from host at runtime (./data:/data).
