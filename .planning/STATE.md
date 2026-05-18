@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-16)
 Phase: 03 (archive-browser) — EXECUTING
 Plan: 2 of 2
 Status: Phase complete — ready for verification
-Last activity: 2026-05-17
+Last activity: 2026-05-18 - Completed quick task 260518-dqv: Fix Alpine.js script load order on archive-detail page
 
 Progress: [██████████] 100%
 
@@ -84,6 +84,12 @@ None yet.
 - Phase 2: Integration-test Hono bodyLimit vs Cloudflare edge behavior with >100 MB file before issuing iOS Shortcut credentials
 - Phase 2 (operational follow-up from 01-03 Unraid verify): Parameterise host port in `docker-compose.yml` via `${HOST_PORT:-3000}` — port 3000 was occupied by gluetun on the Unraid host, required manual remap to 3300. See `01-UNRAID-VERIFY.md` Deviation 1.
 - Phase 2 (operational follow-up from 01-03 Unraid verify): Bind-mounted `./data` directory created as root has uid mismatch with container (uid 10001). Worked around with `chown -R 10001:10001 ./data`. README "Deploy to Unraid" section should mandate the chown step explicitly, or the entrypoint should attempt it automatically. See `01-UNRAID-VERIFY.md` Deviation 2.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260518-dqv | Fix Alpine.js script load order on archive-detail page (closes B-3 from milestone v1.0 validation iter 3) | 2026-05-18 | 87beef0 | [260518-dqv-fix-alpine-js-script-load-order-on-archi](./quick/260518-dqv-fix-alpine-js-script-load-order-on-archi/) |
 
 ## Deferred Items
 
