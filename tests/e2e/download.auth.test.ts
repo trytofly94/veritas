@@ -26,7 +26,7 @@ let knownId: string;
 let missingDirId: string;
 
 beforeAll(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-dlauth-e2e-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-dlauth-e2e-"));
 
   process.env.DATA_DIR = dataDir;
   process.env.API_KEY = TEST_API_KEY;

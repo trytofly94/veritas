@@ -21,15 +21,15 @@ host: 192.168.178.30 (Unraid-Tower, Linux 6.12.54, Docker 27.5.1)
 - **CPU:** Intel Core i5-9400 @ 2.90 GHz
 - **Docker:** `27.5.1, build 9f9e405`
 - **Compose:** `v2.35.0`
-- **Image:** `auto-archive:phase1` (sha256:137b99a4...)
-- **Container:** `auto-archive` (pinned name, CONCERN-4)
+- **Image:** `veritas:phase1` (sha256:137b99a4...)
+- **Container:** `veritas` (pinned name, CONCERN-4)
 
 ## Deploy Procedure (as executed)
 
-1. `rsync -az --delete --exclude node_modules --exclude data --exclude .git --exclude scratchpads --exclude .planning ./ root@192.168.178.30:/mnt/user/appdata/auto-archive/`
-2. `ssh root@192.168.178.30 'cd /mnt/user/appdata/auto-archive && mkdir -p data && docker compose build && docker compose up -d'`
+1. `rsync -az --delete --exclude node_modules --exclude data --exclude .git --exclude scratchpads --exclude .planning ./ root@192.168.178.30:/mnt/user/appdata/veritas/`
+2. `ssh root@192.168.178.30 'cd /mnt/user/appdata/veritas && mkdir -p data && docker compose build && docker compose up -d'`
 3. **Deviation:** Initial start failed with `Bind for 0.0.0.0:3000 failed: port is already allocated` — port 3000 on this Unraid host is occupied by `binhex-official-gluetun`. Remapped the host port to `3300` by editing `docker-compose.yml` line `3000:3000` → `3300:3000`. **Action item for Phase 2:** parameterise the host port in `docker-compose.yml` via `${HOST_PORT:-3000}` so it can be overridden without editing the file.
-4. **Deviation:** First upload returned `502 {"error":"EACCES: permission denied, mkdir '/data/.tmp-...'"}`. The bind-mounted `./data` dir was created by `mkdir -p data` as root, but the container runs as uid 10001. Fixed with `chown -R 10001:10001 /mnt/user/appdata/auto-archive/data/`. **Action item for Phase 2:** README "Deploy to Unraid" should mention the chown step explicitly, or the smoke script / entrypoint should attempt the chown at start.
+4. **Deviation:** First upload returned `502 {"error":"EACCES: permission denied, mkdir '/data/.tmp-...'"}`. The bind-mounted `./data` dir was created by `mkdir -p data` as root, but the container runs as uid 10001. Fixed with `chown -R 10001:10001 /mnt/user/appdata/veritas/data/`. **Action item for Phase 2:** README "Deploy to Unraid" should mention the chown step explicitly, or the smoke script / entrypoint should attempt the chown at start.
 
 ## Test Results
 
@@ -42,7 +42,7 @@ host: 192.168.178.30 (Unraid-Tower, Linux 6.12.54, Docker 27.5.1)
 | 5 | `ls -la data/<id>/` | **7 files**, all owned by `10001:10001`, modes `r--r--r--` (verify.sh: `r-xr-xr-x`) |
 | 6 | `metadata.json` `.tsa_provider` | **`"dfn"`** — DFN responded on first attempt; fallback chain `["dfn"]` |
 | 7 | `bash verify.sh` | **`VERIFICATION SUCCESS: original.txt hashes match and timestamp is valid`**, exit 0 |
-| 8 | `docker exec auto-archive sh -c '[ ! -e /app/data ]'` | **ABSENT** — no leak into container filesystem (CONCERN-4) |
+| 8 | `docker exec veritas sh -c '[ ! -e /app/data ]'` | **ABSENT** — no leak into container filesystem (CONCERN-4) |
 | 9 | `docker compose down` | OK |
 | 10 | `ls data/` after down | Bundle directory persists on host (`01KRV0MNJFW3V27RPJEYGV5APD/`) |
 

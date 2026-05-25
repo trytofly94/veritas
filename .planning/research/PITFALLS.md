@@ -197,8 +197,8 @@
 **Why it happens:** Forgetting to declare and mount a Docker volume for the archive directory. In Unraid, if the docker.img file is corrupted and needs recreation, all container-internal data is gone.
 
 **Prevention:**
-- Bind-mount the archive directory to an Unraid share: `-v /mnt/user/appdata/auto-archive/data:/app/data`
-- Bind-mount the database (if using SQLite): `-v /mnt/user/appdata/auto-archive/db:/app/db`
+- Bind-mount the archive directory to an Unraid share: `-v /mnt/user/appdata/veritas/data:/app/data`
+- Bind-mount the database (if using SQLite): `-v /mnt/user/appdata/veritas/db:/app/db`
 - Never write persisted data inside the container; treat container as stateless
 - On Unraid: store in the `appdata` share on the cache drive, but configure Mover to NOT move this share to the array (or use array share directly for legal data persistence)
 
@@ -225,7 +225,7 @@
 
 **Prevention:**
 - Explicitly set the container's PUID/PGID environment variables to match the Unraid share owner (usually 99:100 for `nobody:users`)
-- Or run a `chown -R 99:100 /mnt/user/appdata/auto-archive` during setup
+- Or run a `chown -R 99:100 /mnt/user/appdata/veritas` during setup
 - Document the required UID/GID in the deployment instructions
 - Add a startup health check that verifies write access to the archive directory
 

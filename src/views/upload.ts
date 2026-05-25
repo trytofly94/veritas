@@ -22,7 +22,7 @@ export function renderUploadPage({ apiKey }: { apiKey: string }): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>auto-archive</title>
+  <title>Veritas</title>
   <link rel="stylesheet" href="/static/style.css">
   <!-- upload.js must load before alpine so window.uploadForm exists when Alpine evaluates x-data -->
   <script defer src="/static/upload.js"></script>

@@ -1,5 +1,5 @@
 {
-  "name": "auto-archive",
+  "name": "veritas",
   "version": "0.1.0",
   "description": "Self-hosted RFC 3161 archive — court-grade file archival with SHA-256 + timestamping",
   "type": "module",

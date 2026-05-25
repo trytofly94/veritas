@@ -21,7 +21,7 @@ beforeAll(async () => {
   delete process.env.TSA_FREETSA_ENDPOINT;
   delete process.env.TSA_DIGICERT_ENDPOINT;
 
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-fallback-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-e2e-fallback-"));
 
   // Set auth env vars BEFORE calling loadConfig (D-06 fail-fast)
   process.env.DATA_DIR = dataDir;
@@ -115,7 +115,7 @@ describe("POST /api/upload — all TSAs unreachable → 502 + zero disk footprin
     // blackholed. We do this by overriding ad-hoc with another DATA_DIR for
     // perfect isolation.
     const downDir = await fsp.mkdtemp(
-      path.join(os.tmpdir(), "auto-archive-e2e-alldown-"),
+      path.join(os.tmpdir(), "veritas-e2e-alldown-"),
     );
     try {
       const before = (await fsp.readdir(downDir)).filter(

@@ -22,7 +22,7 @@ let tmpDir: string;
 
 beforeEach(async () => {
   tmpDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "auto-archive-verify-test-"),
+    path.join(os.tmpdir(), "veritas-verify-test-"),
   );
 });
 

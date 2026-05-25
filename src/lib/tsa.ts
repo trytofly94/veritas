@@ -208,8 +208,8 @@ async function verifyTsrAgainstQuery(args: {
   caCertPath: string;
 }): Promise<void> {
   const unique = `${process.pid}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
-  const tsrPath = path.join(os.tmpdir(), `auto-archive-prv-${unique}.tsr`);
-  const tsqPath = path.join(os.tmpdir(), `auto-archive-prv-${unique}.tsq`);
+  const tsrPath = path.join(os.tmpdir(), `veritas-prv-${unique}.tsr`);
+  const tsqPath = path.join(os.tmpdir(), `veritas-prv-${unique}.tsq`);
   await fsp.writeFile(tsrPath, args.tsr);
   await fsp.writeFile(tsqPath, args.tsq);
   try {

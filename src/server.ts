@@ -49,6 +49,6 @@ export function createApp(deps: AppDeps): Hono {
   // 6. Upload route (with API key gate wired in Task 3 / Plan 03)
   registerUpload(app, deps);
 
-  console.info("auto-archive ready (auth active)");
+  console.info("Veritas ready (auth active)");
   return app;
 }

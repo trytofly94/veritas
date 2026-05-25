@@ -20,5 +20,5 @@ const port = Number(process.env.PORT ?? 3700);
 
 serve({ fetch: app.fetch, port }, (info) => {
   // eslint-disable-next-line no-console
-  console.log(`auto-archive listening on http://0.0.0.0:${info.port}`);
+  console.log(`Veritas listening on http://0.0.0.0:${info.port}`);
 });

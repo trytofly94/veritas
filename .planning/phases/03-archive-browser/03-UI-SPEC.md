@@ -322,8 +322,8 @@ All copy is German (locked — CONTEXT.md D-10, Phase 2 established).
 | Element | Copy |
 |---------|------|
 | Page heading (list) | "Archiv" |
-| Page title (browser tab) | "Archiv — auto-archive" |
-| Page title (detail, browser tab) | "{filename} — auto-archive" |
+| Page title (browser tab) | "Archiv — veritas" |
+| Page title (detail, browser tab) | "{filename} — veritas" |
 | New file button (list) | "Neue Datei hochladen" |
 | Back link (detail) | "← Zurück zum Archiv" |
 | Table column: filename | "Dateiname" |

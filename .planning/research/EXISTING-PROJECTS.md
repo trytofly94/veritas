@@ -20,7 +20,7 @@ No single project covers the full requirement profile:
 - Download bundle (ZIP with verify script)
 - Docker image for Unraid
 
-The closest approximations are paperless-tsa (shell script, paperless-ngx dependency) and sigstore/timestamp-authority (a TSA server, not an archiving system). Neither is a foundation for what auto-archive needs.
+The closest approximations are paperless-tsa (shell script, paperless-ngx dependency) and sigstore/timestamp-authority (a TSA server, not an archiving system). Neither is a foundation for what veritas needs.
 
 ---
 
@@ -77,7 +77,7 @@ Projects that demonstrate patterns, approaches, or architecture worth studying �
 - **URL:** https://github.com/Butanal/paperless-tsa
 - **Stars:** 2 | **License:** Apache-2.0 | **Language:** Shell
 - **What it does:** Post-consumption hook for paperless-ngx. Calls FreeTSA for each uploaded document, stores `.tsr` alongside original. Includes `timestamp_all.sh` for retroactive batch timestamping.
-- **Relevance:** Exact same TSA flow (OpenSSL + FreeTSA + .tsr storage) that auto-archive needs. The shell approach is the proof-of-concept template for the timestamping module.
+- **Relevance:** Exact same TSA flow (OpenSSL + FreeTSA + .tsr storage) that veritas needs. The shell approach is the proof-of-concept template for the timestamping module.
 - **Why not build on:** It is a paperless-ngx sidecar, not a standalone service. No web UI, no API, no metadata, no verification endpoint. 2 stars.
 - **Rating: Reference Only** — steal the OpenSSL invocation pattern verbatim.
 
@@ -105,7 +105,7 @@ Projects that demonstrate patterns, approaches, or architecture worth studying �
 - **Last Release:** v2.0.6 (Apr 2026) — actively maintained
 - **What it does:** A production-grade RFC 3161 TSA *server*. Issues timestamps. Integrates with Rekor transparency log. Docker Compose included.
 - **Relevance:** This is what FreeTSA runs (or something similar). Demonstrates the server side. Could theoretically self-host a TSA, eliminating FreeTSA dependency.
-- **Why not build on:** auto-archive is a TSA *client*, not a server. Running a TSA server adds infrastructure complexity without legal benefit (a self-signed TSA has no third-party trust value for court purposes).
+- **Why not build on:** veritas is a TSA *client*, not a server. Running a TSA server adds infrastructure complexity without legal benefit (a self-signed TSA has no third-party trust value for court purposes).
 - **Rating: Reference Only** — confirms FreeTSA/DFN-TSA are the right call; self-hosting a TSA is overkill for v1.
 
 ### uts-server (kakwa)
@@ -118,10 +118,10 @@ Projects that demonstrate patterns, approaches, or architecture worth studying �
 
 ### Bellingcat Auto Archiver
 
-- **URL:** https://github.com/bellingcat/auto-archiver
+- **URL:** https://github.com/bellingcat/veritasr
 - **Stars:** 1,100 | **License:** MIT | **Last Release:** v1.2.7 (Apr 2026) | **Docker:** Yes
 - **What it does:** Automated web content archiving for journalists/researchers. Modular pipeline: fetch URLs → enrich (hash, transcript) → store (S3, Google Drive). CSV/Google Sheets input.
-- **Relevance:** Architecture pattern for modular enrichment pipeline is conceptually similar to auto-archive's intake → hash → timestamp → store flow.
+- **Relevance:** Architecture pattern for modular enrichment pipeline is conceptually similar to veritas's intake → hash → timestamp → store flow.
 - **Relevant gap:** No RFC 3161 timestamping. URL-centric (not arbitrary file upload). Google Sheets input model is incompatible with the webhook/iOS Shortcut use case.
 - **Rating: Reference Only** — architecture inspiration only; the modular enricher pipeline pattern is worth noting.
 
@@ -157,7 +157,7 @@ Based on the community gist (https://gist.github.com/Manouchehri/fd754e402d98430
 | Service | Trust Level | Notes |
 |---------|-------------|-------|
 | `https://freetsa.org/tsr` | Untrusted (no commercial trust list) | Established, free, used by many OSS projects. No SLA. Adequate for v1. |
-| `http://zeitstempel.dfn.de` | Trusted (DFN = German research network) | More authoritative than FreeTSA for German legal context. Recommended as primary for auto-archive. |
+| `http://zeitstempel.dfn.de` | Trusted (DFN = German research network) | More authoritative than FreeTSA for German legal context. Recommended as primary for veritas. |
 | `http://timestamp.digicert.com` | Adobe Trust List | Commercial but free tier. High uptime. Good fallback. |
 | `http://timestamp.sectigo.com` | Adobe Trust List | Same tier as DigiCert. Good fallback. |
 
@@ -175,7 +175,7 @@ n8n's native webhook node:
 - 16 MB default payload limit (configurable via `N8N_PAYLOAD_SIZE_MAX`)
 - n8n already runs on Lennart's Unraid server
 
-**Pattern:** n8n webhook → HTTP Request node → auto-archive upload endpoint. The n8n side is a generic HTTP call, no custom node needed. The relevant n8n template is "Creating a Secure Webhook" (https://n8n.io/workflows/5174-creating-a-secure-webhook-must-have/).
+**Pattern:** n8n webhook → HTTP Request node → veritas upload endpoint. The n8n side is a generic HTTP call, no custom node needed. The relevant n8n template is "Creating a Secure Webhook" (https://n8n.io/workflows/5174-creating-a-secure-webhook-must-have/).
 
 ---
 
@@ -183,10 +183,10 @@ n8n's native webhook node:
 
 No pre-built iOS Shortcut template for RFC 3161-aware file upload to a self-hosted server exists in the Shortcuts Gallery or community repositories.
 
-iOS Shortcuts native capabilities relevant to auto-archive:
+iOS Shortcuts native capabilities relevant to veritas:
 - "Get File" action — picks any file from Files app (including iCloud Drive, WhatsApp exports via share sheet)
 - "Get Contents of URL" action — supports multipart/form-data POST with custom headers (X-API-Key)
-- Share Sheet extension — allows auto-archive to be a share target from any app
+- Share Sheet extension — allows veritas to be a share target from any app
 
 The Shortcut build is straightforward: Get File → Set Variable (file, description note) → URL (multipart POST with API key header) → Show Result (archive ID from response). No template needed; standard Shortcuts primitives suffice.
 
@@ -202,7 +202,7 @@ The Shortcut build is straightforward: Get File → Set Variable (file, descript
 
 2. **The core timestamping logic is simple.** OpenSSL's `ts` subcommand handles the full RFC 3161 flow in 3 lines of shell. The complexity is in the surrounding system (API server, storage, frontend, auth), which has no existing solution to inherit.
 
-3. **Scope is narrow and specific.** auto-archive is purpose-built for a specific use case (tamper-proof evidence archiving for a family/small team on Unraid). General-purpose tools (paperless-ngx, Mayan EDMS) add massive overhead for features that are explicitly out of scope.
+3. **Scope is narrow and specific.** veritas is purpose-built for a specific use case (tamper-proof evidence archiving for a family/small team on Unraid). General-purpose tools (paperless-ngx, Mayan EDMS) add massive overhead for features that are explicitly out of scope.
 
 4. **Build time is low.** Given the simplicity of the TSA client logic and the clarity of the storage model (filesystem, structured directories), this is a 2-3 phase build, not a platform.
 
@@ -214,7 +214,7 @@ The Shortcut build is straightforward: Get File → Set Variable (file, descript
 | rfcts | Two-command timestamp/verify shell interface |
 | GitTrustedTimestamps | LTV + chaining concept for v2 consideration |
 | weisser-zwerg.dev blog | Verification workflow walkthrough for documentation |
-| Bellingcat auto-archiver | Modular enrichment pipeline architecture concept |
+| Bellingcat veritasr | Modular enrichment pipeline architecture concept |
 
 ### What NOT to Use as Foundation
 
@@ -242,7 +242,7 @@ The Shortcut build is straightforward: Get File → Set Variable (file, descript
 - uts-server: https://github.com/kakwa/uts-server
 - pdf-rfc3161: https://github.com/mingulov/pdf-rfc3161
 - dnl50/tsa-server Docker: https://hub.docker.com/r/dnl50/tsa-server
-- bellingcat/auto-archiver: https://github.com/bellingcat/auto-archiver
+- bellingcat/veritasr: https://github.com/bellingcat/veritasr
 - Free TSA servers gist: https://gist.github.com/Manouchehri/fd754e402d98430243455713efada710
 - OpenSSL trusted timestamping guide: https://weisser-zwerg.dev/posts/trusted_timestamping/
 - n8n secure webhook template: https://n8n.io/workflows/5174-creating-a-secure-webhook-must-have/

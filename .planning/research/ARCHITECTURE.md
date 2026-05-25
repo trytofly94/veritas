@@ -46,9 +46,9 @@ The system has five distinct concerns that map to five components. They are all 
 |-----------|---------------|-------------------|
 | Upload API | Receive files, compute SHA-256, orchestrate TSA requests, persist archive entries | TSA Client (internal call), Archive Storage (filesystem write) |
 | TSA Client | Build `.tsq`, POST to FreeTSA/DFN, save `.tsr`, retry on failure | FreeTSA `https://freetsa.org/tsr`, DFN `https://zeitstempel.dfn.de` |
-| Archive Storage | Filesystem — `/mnt/user/appdata/auto-archive/archive/` | Read/write by Upload API and Archive Browser |
+| Archive Storage | Filesystem — `/mnt/user/appdata/veritas/archive/` | Read/write by Upload API and Archive Browser |
 | Archive Browser | Render entry list, single entry view, verify integrity on-demand | Archive Storage (filesystem read), openssl CLI (subprocess for verify) |
-| Cloudflare Tunnel | Expose the single FastAPI process to the public internet | Routes `archive.lennart.de` → `auto-archive:8000` inside Docker network |
+| Cloudflare Tunnel | Expose the single FastAPI process to the public internet | Routes `archive.lennart.de` → `veritas:8000` inside Docker network |
 
 **Key decision: Single FastAPI process, not microservices.** At this scale (one user + family) the operational overhead of multiple services outweighs any benefit. The Upload API and Archive Browser are two route groups (`/api/` and `/browse/`) in the same process. The TSA client is a Python module within that process, not a separate service.
 
@@ -61,7 +61,7 @@ The system has five distinct concerns that map to five components. They are all 
 Each submitted file gets a UUID-based directory. All artifacts for that submission are co-located — this makes the bundle self-contained and independently verifiable with only openssl and the FreeTSA CA certificate.
 
 ```
-/mnt/user/appdata/auto-archive/
+/mnt/user/appdata/veritas/
 ├── archive/
 │   ├── 2026-05-16_143022_a3f8b2c1/        ← {date}_{time}_{uuid8}
 │   │   ├── original.{ext}                  ← original file, unchanged
@@ -139,12 +139,12 @@ echo "=== PASSED ==="
 **Single container, not multi-container.** The application (FastAPI) and the tunnel (cloudflared) are two services in the same Compose stack, sharing one Docker network. There is no separate database container — SQLite lives on the Unraid filesystem.
 
 ```yaml
-# /mnt/user/appdata/auto-archive/docker-compose.yml
+# /mnt/user/appdata/veritas/docker-compose.yml
 
 services:
-  auto-archive:
-    image: auto-archive:latest
-    container_name: auto-archive
+  veritas:
+    image: veritas:latest
+    container_name: veritas
     restart: unless-stopped
     environment:
       - API_KEY=${API_KEY}
@@ -155,22 +155,22 @@ services:
       - TSA_FALLBACK=https://zeitstempel.dfn.de
       - TZ=Europe/Berlin
     volumes:
-      - /mnt/user/appdata/auto-archive/archive:/data/archive
-      - /mnt/user/appdata/auto-archive/db:/data/db
-      - /mnt/user/appdata/auto-archive/certs:/data/certs:ro
+      - /mnt/user/appdata/veritas/archive:/data/archive
+      - /mnt/user/appdata/veritas/db:/data/db
+      - /mnt/user/appdata/veritas/certs:/data/certs:ro
     networks:
       - archive-net
     # No exposed ports — access is via cloudflared only (internal) or Caddy-Central
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: auto-archive-tunnel
+    container_name: veritas-tunnel
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
     depends_on:
-      - auto-archive
+      - veritas
     networks:
       - archive-net
 
@@ -180,13 +180,13 @@ networks:
 ```
 
 **Volume mount conventions for Unraid:**
-- All persistent data under `/mnt/user/appdata/auto-archive/` — this is the Unraid standard for appdata
+- All persistent data under `/mnt/user/appdata/veritas/` — this is the Unraid standard for appdata
 - Archive files on `/mnt/user/` (array) — protected by Unraid parity, not on cache-only
 - Do NOT use named Docker volumes (e.g. `volumes: archive-data:`) — Unraid's Community Apps expects bind mounts at `/mnt/user/appdata/` for backup and visibility
 
-**Cloudflare Tunnel routing:** Configured in the Cloudflare Zero Trust dashboard, not in YAML. Route `archive.lennart.de` → `http://auto-archive:8000`. The service name `auto-archive` is Docker's internal DNS — no IP address needed.
+**Cloudflare Tunnel routing:** Configured in the Cloudflare Zero Trust dashboard, not in YAML. Route `archive.lennart.de` → `http://veritas:8000`. The service name `veritas` is Docker's internal DNS — no IP address needed.
 
-**Why no port exposure on the host?** The `auto-archive` container intentionally has no `ports:` mapping. Access from LAN can go through Caddy-Central (`192.168.178.30:PORT` → container) or via the tunnel. This prevents accidental public exposure if the tunnel breaks.
+**Why no port exposure on the host?** The `veritas` container intentionally has no `ports:` mapping. Access from LAN can go through Caddy-Central (`192.168.178.30:PORT` → container) or via the tunnel. This prevents accidental public exposure if the tunnel breaks.
 
 ---
 
@@ -358,7 +358,7 @@ This is legal evidence — the archive must survive hardware failure.
 
 | Copy | Location | Method | Frequency |
 |------|----------|--------|-----------|
-| Primary | Unraid array (`/mnt/user/appdata/auto-archive/`) | Live | Continuous |
+| Primary | Unraid array (`/mnt/user/appdata/veritas/`) | Live | Continuous |
 | Local backup | Unraid parity + separate disk | Unraid parity | Continuous |
 | Offsite | Backblaze B2 or rclone to cloud | rclone cron job | Daily |
 | Cold | USB drive / external HDD | Manual rsync | Monthly |

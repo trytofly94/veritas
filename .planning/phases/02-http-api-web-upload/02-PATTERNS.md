@@ -73,7 +73,7 @@ export function createApp(): Hono {
 ```
 
 **Phase 2 changes:**
-- **D-26:** Remove the Phase-1 warning. Replace with a one-line log confirming auth active (e.g. `console.info("auto-archive ready (auth active)")`).
+- **D-26:** Remove the Phase-1 warning. Replace with a one-line log confirming auth active (e.g. `console.info("veritas ready (auth active)")`).
 - Pass a `Deps` bag (db client, config) into `createApp(deps)` so routes can read them off Hono variables. Drives testability for backfill + DB-dependent endpoints.
 - Mount new registrars in this order: `registerErrorEnvelope(app)` (D-23 global) → `registerPages(app)` → `registerLogin(app)` → `registerStatic(app)` → `registerUpload(app, deps)` → `registerDownload(app, deps)`.
 - Use `serveStatic` from `@hono/node-server/serve-static` for `/static/*`.
@@ -95,7 +95,7 @@ import { createApp } from "./server.js";
 const app = createApp();
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`auto-archive listening on http://0.0.0.0:${info.port}`);
+  console.log(`veritas listening on http://0.0.0.0:${info.port}`);
 });
 ```
 
@@ -641,7 +641,7 @@ export function renderUploadPage(args: { apiKey: string }): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>auto-archive</title>
+  <title>veritas</title>
   <link rel="stylesheet" href="/static/style.css">
   <script defer src="/static/alpine.min.js"></script>
   <script defer src="/static/upload.js"></script>
@@ -686,7 +686,7 @@ let baseUrl: string;
 let dataDir: string;
 
 beforeAll(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-e2e-"));
   process.env.DATA_DIR = dataDir;
   process.env.API_KEY = "test-api-key-1234567890";
   process.env.SESSION_SECRET = "test-session-secret-must-be-32+-bytes-long-yo";

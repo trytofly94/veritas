@@ -21,7 +21,7 @@ FROM node:22-bookworm-slim AS runtime
 #
 # WR-04: Debian's apt does not let us pin to a stable major-version glob
 # without breaking builds when patch versions rotate out of the repo. We
-# instead capture the exact installed versions into /etc/auto-archive-build
+# instead capture the exact installed versions into /etc/veritas-build
 # so they are queryable from the running image, and we set an OCI label
 # with the openssl version for reproducibility audits.
 RUN apt-get update \
@@ -32,10 +32,10 @@ RUN apt-get update \
  && { \
       echo "openssl_version=$(openssl version)"; \
       dpkg-query -W -f='${Package}=${Version}\n' openssl ca-certificates; \
-    } > /etc/auto-archive-build
+    } > /etc/veritas-build
 
-LABEL org.opencontainers.image.title="auto-archive" \
-      org.opencontainers.image.source="https://github.com/trytofly94/auto-archive"
+LABEL org.opencontainers.image.title="Veritas" \
+      org.opencontainers.image.source="https://github.com/trytofly94/veritas"
 
 # Non-root user (T-03-01). uid 10001 is documented in README for Unraid chown notes.
 RUN groupadd --system --gid 10001 app \

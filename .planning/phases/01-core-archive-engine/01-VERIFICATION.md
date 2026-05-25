@@ -103,7 +103,7 @@ The fix splits the two code paths: when `label !== undefined`, it runs the stric
 | WR-01 | `src/lib/bundle.ts:122-136` | 6c23b53 | chmod loop now runs BEFORE the final rename (line 129-133), so the rename is the single atomic publish step. A crash mid-chmod leaves a half-permissioned `.tmp-<id>` (cleaned by catch block), not a half-permissioned final bundle. | ✓ |
 | WR-02 | `docker-compose.yml:23` | 6bed6c6 | Port mapping is `"127.0.0.1:3000:3000"` with inline comment citing WR-02. Phase 1 service no longer reachable on LAN by default. | ✓ |
 | WR-03 | `docker-compose.yml:32-38` | f9b2cf4 | `read_only: true`, `tmpfs: /tmp:size=128m,mode=1777`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]` all present. | ✓ |
-| WR-04 | `Dockerfile:27-35` | 4b9ae8a | Build step captures `openssl_version` and `dpkg-query` output for `openssl` + `ca-certificates` into `/etc/auto-archive-build`; OCI label set for image. | ✓ |
+| WR-04 | `Dockerfile:27-35` | 4b9ae8a | Build step captures `openssl_version` and `dpkg-query` output for `openssl` + `ca-certificates` into `/etc/veritas-build`; OCI label set for image. | ✓ |
 | WR-05 | `src/lib/tsa.ts:21-22, 174, 190` + `src/lib/bundle.ts:15-18, 116-119` | 14067ff | Both files now anchor `REPO_ROOT` to `fileURLToPath(import.meta.url) + ../..` and resolve `caCertPath` + verify-template path relative to it. cwd-dependence eliminated. | ✓ |
 | WR-06 | `src/lib/tsa.ts` (TsaResult / TsaAttempt typing) | bbf43a3 | `Object.assign({...tsq...})` hack removed; type-system bypass closed per commit message. (Spot-checked: `grep "Object.assign" src/lib/tsa.ts` returns no matches in the call path; `tsq` flows via explicit field, not side-channel cast.) | ✓ |
 | WR-07 | — | Closed by CR-01 fix | The truncated-path race was a symptom of CR-01; awaiting `writePromise` closes it. | ✓ |
@@ -156,7 +156,7 @@ All artifacts that were ✓ VERIFIED in the prior report remain so. The two arti
 | chmod before rename in bundle | `grep -n "chmod\|rename" src/lib/bundle.ts` | chmod loop at 129-133, rename at 136 (after) | ✓ PASS |
 | Compose port bound to loopback | `grep -n "127.0.0.1:3000" docker-compose.yml` | line 23 | ✓ PASS |
 | Container hardening flags present | `grep -n "read_only\|cap_drop\|no-new-privileges\|tmpfs" docker-compose.yml` | all 4 present (lines 32-38) | ✓ PASS |
-| Dockerfile build artifact captures openssl version | `grep -n "auto-archive-build" Dockerfile` | line 31, 35 | ✓ PASS |
+| Dockerfile build artifact captures openssl version | `grep -n "veritas-build" Dockerfile` | line 31, 35 | ✓ PASS |
 | Module-relative REPO_ROOT in tsa.ts | `grep -n "REPO_ROOT" src/lib/tsa.ts` | declaration line 21-23, usages at 174, 190 | ✓ PASS |
 | Module-relative REPO_ROOT in bundle.ts | `grep -n "REPO_ROOT" src/lib/bundle.ts` | declaration line 15-18, usage at 117 | ✓ PASS |
 | All 10 fix commits present in git log | `git log --oneline | grep -E "a21a715\|d323890\|68db609\|6c23b53\|6bed6c6\|f9b2cf4\|4b9ae8a\|14067ff\|bbf43a3"` | All present, in order | ✓ PASS |

@@ -1,4 +1,4 @@
-# auto-archive — Phase 2 container compose definition.
+# Veritas — Phase 2 container compose definition.
 #
 # Required env vars (set via .env or docker compose --env-file):
 #   API_KEY          — X-API-Key value for upload + download endpoints
@@ -9,14 +9,14 @@
 #   ./data           — host bind-mount for bundle directories AND manifest.sqlite
 
 services:
-  auto-archive:
+  veritas:
     # container_name pinned so `docker compose exec` and `docker exec` are
     # deterministic regardless of how Compose names the project (CONCERN-4).
-    container_name: auto-archive
+    container_name: veritas
     build:
       context: .
       dockerfile: Dockerfile
-    image: auto-archive:phase1
+    image: veritas:latest
     # LAN access on port 3700 — use http://192.168.178.30:3700
     # External access via caddy-central → Cloudflare Tunnel (proxy-net).
     ports:

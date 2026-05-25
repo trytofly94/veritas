@@ -187,17 +187,17 @@ No REFACTOR commits were needed.
 
 ## Self-Check: PASSED
 
-- File `/Users/lennart/Development/auto-archive/src/lib/formatDetail.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/src/lib/verifyIntegrity.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/src/lib/escapeHtml.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/src/views/archive-detail.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/src/views/error-page.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/src/static/archive-detail.js` — FOUND
-- File `/Users/lennart/Development/auto-archive/tests/unit/formatDetail.test.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/tests/unit/verifyIntegrity.test.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/tests/unit/archive-detail-view.test.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/tests/e2e/archive-detail.test.ts` — FOUND
-- File `/Users/lennart/Development/auto-archive/tests/e2e/archive-verify.test.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/lib/formatDetail.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/lib/verifyIntegrity.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/lib/escapeHtml.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/views/archive-detail.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/views/error-page.ts` — FOUND
+- File `/Users/lennart/Development/veritas/src/static/archive-detail.js` — FOUND
+- File `/Users/lennart/Development/veritas/tests/unit/formatDetail.test.ts` — FOUND
+- File `/Users/lennart/Development/veritas/tests/unit/verifyIntegrity.test.ts` — FOUND
+- File `/Users/lennart/Development/veritas/tests/unit/archive-detail-view.test.ts` — FOUND
+- File `/Users/lennart/Development/veritas/tests/e2e/archive-detail.test.ts` — FOUND
+- File `/Users/lennart/Development/veritas/tests/e2e/archive-verify.test.ts` — FOUND
 - Commit f6f58bb — FOUND
 - Commit 9f4fd13 — FOUND
 - Commit 793ddd2 — FOUND

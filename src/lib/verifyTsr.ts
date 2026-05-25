@@ -33,7 +33,7 @@ export async function verifyTsr(args: VerifyTsrArgs): Promise<void> {
   const { tsr, dataPath, caCertPath } = args;
 
   const unique = `${process.pid}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
-  const tsrPath = path.join(os.tmpdir(), `auto-archive-verify-${unique}.tsr`);
+  const tsrPath = path.join(os.tmpdir(), `veritas-verify-${unique}.tsr`);
   await fsp.writeFile(tsrPath, tsr);
 
   try {

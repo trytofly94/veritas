@@ -1,4 +1,4 @@
-# auto-archive
+# Veritas
 
 Self-hosted, court-grade file archive. Every submitted file is hashed
 (SHA-256) and timestamped via RFC 3161 (DFN → FreeTSA → DigiCert fallback)
@@ -119,11 +119,11 @@ build — only the bind-mount path and the secret material change.
 # 1. On your laptop — push the repo to Unraid's appdata share.
 rsync -avz --delete \
   --exclude node_modules --exclude data --exclude .git --exclude .env \
-  ./ root@192.168.178.30:/mnt/user/appdata/auto-archive/
+  ./ root@192.168.178.30:/mnt/user/appdata/veritas/
 
 # 2. SSH in, drop a real .env file in place, and start.
 ssh root@192.168.178.30
-cd /mnt/user/appdata/auto-archive
+cd /mnt/user/appdata/veritas
 mkdir -p data
 cat > .env <<EOF
 API_KEY=<paste-strong-random-32+-bytes>
@@ -133,7 +133,7 @@ EOF
 chmod 600 .env
 docker compose build
 docker compose up -d
-docker compose logs --tail=50 auto-archive     # confirm "listening on …:3700"
+docker compose logs --tail=50 veritas     # confirm "listening on …:3700"
 ```
 
 ### Cloudflare Tunnel exposure
@@ -163,13 +163,13 @@ curl -H "X-API-Key: $API_KEY" \
 
 # SSH back in and verify the bundle on the real Unraid filesystem.
 ssh root@192.168.178.30
-cd /mnt/user/appdata/auto-archive
+cd /mnt/user/appdata/veritas
 ls -la data/<id>/                              # expect 7 files
 cat data/<id>/metadata.json | jq .tsa_provider # records which TSA signed
 bash data/<id>/verify.sh                       # expect VERIFICATION SUCCESS
 
 # Bundle-isolation check — nothing should live inside the container.
-docker compose exec -T auto-archive sh -c '[ ! -e /app/data ]' && echo "isolated"
+docker compose exec -T veritas sh -c '[ ! -e /app/data ]' && echo "isolated"
 ```
 
 ### Unraid-specific notes
@@ -256,5 +256,5 @@ tests/                     Vitest unit + e2e suites (incl. real TSA round trips)
 scripts/                   Operator scripts (smoke-container.sh)
 .planning/                 GSD workflow artifacts (phases, plans, audits)
 Dockerfile                 Multi-stage build → node:22-bookworm-slim runtime
-docker-compose.yml         Single-service compose stack (container_name=auto-archive)
+docker-compose.yml         Single-service compose stack (container_name=veritas)
 ```

@@ -31,7 +31,7 @@ response from that TSA. The procedure:
 
 1. Compute a representative SHA-256 digest (e.g., of any small file):
    ```bash
-   echo -n "auto-archive cert discovery" | openssl dgst -sha256 -binary | xxd -p -c 64 > /tmp/digest.hex
+   echo -n "veritas cert discovery" | openssl dgst -sha256 -binary | xxd -p -c 64 > /tmp/digest.hex
    ```
 2. Build a TimeStampQuery with a nonce (do NOT use `-no_nonce`):
    ```bash

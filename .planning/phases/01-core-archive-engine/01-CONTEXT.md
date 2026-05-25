@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Phase 1 delivers the cryptographic core of auto-archive: a Dockerized Node.js service that accepts a file via unauthenticated HTTP POST, computes its SHA-256, obtains an RFC 3161 timestamp (DFN → FreeTSA → DigiCert), and writes a complete tamper-proof bundle (`original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `tsa-cacert.pem`, `metadata.json`, `verify.sh`) to a bind-mounted Unraid volume. The container starts via `docker-compose up`; no data is stored inside the container; nothing else (auth, web form, ZIP download, browser, SQLite manifest) is in scope.
+Phase 1 delivers the cryptographic core of veritas: a Dockerized Node.js service that accepts a file via unauthenticated HTTP POST, computes its SHA-256, obtains an RFC 3161 timestamp (DFN → FreeTSA → DigiCert), and writes a complete tamper-proof bundle (`original.<ext>`, `original.sha256`, `original.tsq`, `original.tsr`, `tsa-cacert.pem`, `metadata.json`, `verify.sh`) to a bind-mounted Unraid volume. The container starts via `docker-compose up`; no data is stored inside the container; nothing else (auth, web form, ZIP download, browser, SQLite manifest) is in scope.
 
 </domain>
 

@@ -1,4 +1,4 @@
-# Technology Stack — auto-archive
+# Technology Stack — veritas
 
 **Project:** Self-hosted tamper-proof file archiving with RFC 3161 timestamps
 **Researched:** 2026-05-16

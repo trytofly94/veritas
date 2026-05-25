@@ -1,4 +1,4 @@
-# Roadmap: auto-archive
+# Roadmap: veritas
 
 ## Milestones
 

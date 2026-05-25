@@ -8,7 +8,7 @@ requires:
   - "Plan 01-02 TSA fallback chain + verify.sh (7-file bundle)"
 provides:
   - "Multi-stage Dockerfile (deps → build → runtime) on node:22-bookworm-slim with openssl + non-root user (uid 10001) + Node-fetch HEALTHCHECK"
-  - "docker-compose.yml with container_name=auto-archive and bind-mount ./data:/data"
+  - "docker-compose.yml with container_name=veritas and bind-mount ./data:/data"
   - "scripts/smoke-container.sh — automated end-to-end container smoke (build → up → health → POST → verify.sh → isolation check → down)"
   - "tests/e2e/container-smoke.test.ts — vitest gate around the smoke script"
   - "GET /health route (200, {ok:true}) — added as part of Task 1 to back the HEALTHCHECK"
@@ -38,7 +38,7 @@ key-files:
     - ".planning/STATE.md"  # blocker resolved + 2 Phase-2 follow-ups
 decisions:
   - "HEALTHCHECK uses `node -e \"fetch('http://127.0.0.1:3000/health')...\"` not curl — keeps the runtime image free of apt-installed curl (CONCERN-5 mitigation)."
-  - "container_name=auto-archive pinned in docker-compose.yml so `docker compose exec` is name-deterministic regardless of compose project naming (CONCERN-4)."
+  - "container_name=veritas pinned in docker-compose.yml so `docker compose exec` is name-deterministic regardless of compose project naming (CONCERN-4)."
   - "Bundle file ownership stays at uid 10001 on host; README documents the optional `chown -R 99:100 ./data` Unraid-share workaround instead of changing the container's runtime user (Phase 1 leaves uid 10001; Phase 2 may revisit)."
   - "Two real-world Unraid deviations are documented in 01-UNRAID-VERIFY.md and converted into Phase-2 STATE.md follow-ups rather than retrofitting them into Phase 1: (a) host port parameterisation, (b) bind-mount chown automation."
 metrics:
@@ -48,7 +48,7 @@ metrics:
   commits: 2  # T1 ca04f0c + T2 verify-report commit
   files_created: 6
   files_modified: 3
-  image_size: "n/a — not measured during Unraid smoke; node:22-bookworm-slim base ~250 MB; auto-archive layer adds dist/ + assets/ + prod node_modules"
+  image_size: "n/a — not measured during Unraid smoke; node:22-bookworm-slim base ~250 MB; veritas layer adds dist/ + assets/ + prod node_modules"
   build_time_unraid: "~30 s (cold node:22-bookworm-slim pull + npm ci + tsc)"
   unraid_post_latency: "234 ms end-to-end (POST → hash → DFN-TSA → bundle write → response)"
   observed_tsa_provider_unraid: "dfn"
@@ -65,10 +65,10 @@ Phase 1 is now production-deployable. The exact same image that runs `bash scrip
 
 1. **Dockerfile** — three stages (`deps`, `build`, `runtime`) on `node:22-bookworm-slim`. The runtime stage installs `openssl` + `ca-certificates`, creates user `app` (uid 10001), copies prod node_modules + dist + assets, declares `VOLUME /data`, exposes 3000, and runs `node dist/index.js` as `app`. `RUN openssl version` is a build-time assertion that openssl is present.
 2. **HEALTHCHECK** uses Node 22's built-in `fetch` — no curl in the image (CONCERN-5).
-3. **docker-compose.yml** — single service `auto-archive`, `container_name: auto-archive` pinned (CONCERN-4), bind-mount `./data:/data`, env passthrough for `TSA_*_ENDPOINT` overrides.
+3. **docker-compose.yml** — single service `veritas`, `container_name: veritas` pinned (CONCERN-4), bind-mount `./data:/data`, env passthrough for `TSA_*_ENDPOINT` overrides.
 4. **scripts/smoke-container.sh** — automated end-to-end: build → up → poll /health → curl POST → assert HTTP 201 → enumerate 7 bundle files on host → run verify.sh → assert `[ ! -e /app/data ]` inside container → compose down. Wrapped in `tests/e2e/container-smoke.test.ts` so CI gates on it.
 5. **GET /health** route added to `src/server.ts` (returns `{ok:true}`) to back the HEALTHCHECK probe.
-6. **Unraid production smoke** — verified on `192.168.178.30` (Unraid-Tower, Docker 27.5.1). HTTP 201 in 234 ms, 7-file bundle on `/mnt/user/appdata/auto-archive/data/01KRV0MNJFW3V27RPJEYGV5APD/`, `verify.sh` exits 0 with `VERIFICATION SUCCESS`, `tsa_provider="dfn"` (no fallback triggered). Container isolation pass: `[ ! -e /app/data ]` is true.
+6. **Unraid production smoke** — verified on `192.168.178.30` (Unraid-Tower, Docker 27.5.1). HTTP 201 in 234 ms, 7-file bundle on `/mnt/user/appdata/veritas/data/01KRV0MNJFW3V27RPJEYGV5APD/`, `verify.sh` exits 0 with `VERIFICATION SUCCESS`, `tsa_provider="dfn"` (no fallback triggered). Container isolation pass: `[ ! -e /app/data ]` is true.
 
 The phase-goal sentence is now literally true: *"A running Docker container on Unraid can accept a file, hash it, obtain an RFC 3161 timestamp, and write a complete tamper-proof archive bundle to a bind-mounted volume."*
 
@@ -76,11 +76,11 @@ The phase-goal sentence is now literally true: *"A running Docker container on U
 
 ```
 docker compose up -d
-  └─ auto-archive (container_name pinned)
+  └─ veritas (container_name pinned)
        USER app (uid 10001), WORKDIR /app, EXPOSE 3000
        HEALTHCHECK: node -e "fetch('http://127.0.0.1:3000/health')…"
        CMD ["node","dist/index.js"]
-       VOLUME /data  ←  bind-mount ./data on host (./mnt/user/appdata/auto-archive/data on Unraid)
+       VOLUME /data  ←  bind-mount ./data on host (./mnt/user/appdata/veritas/data on Unraid)
 
 POST :3000/api/upload (multipart)
   → busboy → tempfile → sha256 → DFN-TSA → verify-tsr → atomic writeBundle to /data
@@ -100,11 +100,11 @@ POST :3000/api/upload (multipart)
 | Measurement | Value | Source |
 |---|---|---|
 | Unraid host | `192.168.178.30` — Unraid-Tower, Linux 6.12.54, Docker 27.5.1, Compose v2.35.0 | 01-UNRAID-VERIFY.md |
-| Image tag | `auto-archive:phase1` (sha256:137b99a4…) | 01-UNRAID-VERIFY.md |
+| Image tag | `veritas:phase1` (sha256:137b99a4…) | 01-UNRAID-VERIFY.md |
 | Build time (cold) on Unraid | ~30 s | 01-UNRAID-VERIFY.md |
 | POST /api/upload latency on Unraid | **234 ms** (vs. ~217 ms on dev laptop) | 01-UNRAID-VERIFY.md |
 | Observed `tsa_provider` on Unraid | **`"dfn"`** — fallback chain `["dfn"]` | metadata.json in bundle |
-| Bundle file ownership on Unraid host | `10001:10001` | `ls -la /mnt/user/appdata/auto-archive/data/<id>/` |
+| Bundle file ownership on Unraid host | `10001:10001` | `ls -la /mnt/user/appdata/veritas/data/<id>/` |
 | Bundle size | 7 files (modes `444` for artifacts, `555` for verify.sh) | 01-UNRAID-VERIFY.md |
 | `verify.sh` on Unraid | exit 0, `VERIFICATION SUCCESS` | 01-UNRAID-VERIFY.md |
 | `[ ! -e /app/data ]` inside container | ABSENT (exit 0) — no leak | 01-UNRAID-VERIFY.md |
@@ -126,7 +126,7 @@ Full empirical record: **[01-UNRAID-VERIFY.md](./01-UNRAID-VERIFY.md)**.
 
 - **Found during:** Task 2 (human-verify), first POST upload on Unraid
 - **Issue:** `mkdir -p data` on Unraid created the directory as root. The container runs as uid 10001, so the first upload returned `502 {"error":"EACCES: permission denied, mkdir '/data/.tmp-...'"}`.
-- **Workaround:** `chown -R 10001:10001 /mnt/user/appdata/auto-archive/data/` on the Unraid host before retrying. Upload then succeeded immediately.
+- **Workaround:** `chown -R 10001:10001 /mnt/user/appdata/veritas/data/` on the Unraid host before retrying. Upload then succeeded immediately.
 - **Phase-2 follow-up (logged in STATE.md):** README "Deploy to Unraid" should mandate the chown step explicitly, or the entrypoint should attempt it automatically (`chown -R app:app /data 2>/dev/null || true` as root before dropping privileges).
 - **Operational / packaging concern only — not a protocol issue.**
 
@@ -144,16 +144,16 @@ None. The Dockerfile, compose file, and smoke script all run real workloads agai
 
 ### Task 1 (local Docker smoke)
 
-- [x] `docker compose build` exits 0; `auto-archive:phase1` is created.
-- [x] `docker run --rm auto-archive:phase1 openssl version` prints an OpenSSL version line.
+- [x] `docker compose build` exits 0; `veritas:phase1` is created.
+- [x] `docker run --rm veritas:phase1 openssl version` prints an OpenSSL version line.
 - [x] `docker inspect … --format '{{.Config.User}}'` returns `app`.
 - [x] curl is NOT installed in the runtime image (CONCERN-5).
 - [x] `docker inspect … --format '{{json .Config.Healthcheck.Test}}'` contains `"fetch('http://127.0.0.1:3000/health')"`.
 - [x] `bash scripts/smoke-container.sh` exits 0.
-- [x] `docker ps --filter name=^auto-archive$` returns exactly `auto-archive` (CONCERN-4).
+- [x] `docker ps --filter name=^veritas$` returns exactly `veritas` (CONCERN-4).
 - [x] Bundle dir on host contains exactly 7 files.
 - [x] `bash ./data/<id>/verify.sh` exits 0 with `VERIFICATION SUCCESS`.
-- [x] `docker compose exec -T auto-archive sh -c '[ ! -e /app/data ]'` exits 0 (CONCERN-4 isolation).
+- [x] `docker compose exec -T veritas sh -c '[ ! -e /app/data ]'` exits 0 (CONCERN-4 isolation).
 - [x] Bundles persist across `docker compose down`.
 - [x] `npm test -- --run tests/e2e/container-smoke.test.ts` exits 0.
 
@@ -193,7 +193,7 @@ None new. The implemented surface (single container, bind-mount, port 3000, no a
 
 Phase 2 (SEC-01 + UPLOAD-01 — API-key auth + Cloudflare Tunnel publication) inherits:
 
-1. A working `auto-archive:phase1` image and `docker-compose.yml` that runs unchanged on Unraid.
+1. A working `veritas:phase1` image and `docker-compose.yml` that runs unchanged on Unraid.
 2. A pre-finalization-verified RFC 3161 chain (DFN→FreeTSA→DigiCert) with `verify.sh` in every bundle.
 3. Two operational follow-ups logged in STATE.md to address during Phase 2 deploy work:
    - Parameterise the host port via `${HOST_PORT:-3000}` in `docker-compose.yml`.

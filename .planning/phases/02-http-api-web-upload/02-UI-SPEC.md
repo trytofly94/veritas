@@ -152,7 +152,7 @@ States:
 
 ```
 ┌─────────────────────────────────────────┐
-│  auto-archive                           │  ← 20px/600
+│  veritas                           │  ← 20px/600
 │                                          │
 │  Passwort                               │  ← 14px label
 │  ┌────────────────────────────────────┐  │
@@ -194,7 +194,7 @@ All copy is German (locked — CONTEXT.md D-10).
 |---------|------|
 | Page heading (upload) | "Datei archivieren" |
 | Page heading (login) | "Anmelden" |
-| App name / browser title | "auto-archive" |
+| App name / browser title | "veritas" |
 | Drag-drop zone prompt | "Datei hierher ziehen oder Datei auswählen" |
 | File picker button | "Datei auswählen" |
 | Label input label | "Bezeichnung (optional)" |

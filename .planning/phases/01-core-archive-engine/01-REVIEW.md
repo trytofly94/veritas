@@ -183,7 +183,7 @@ If the operator genuinely wants LAN access in Phase 1, they edit the compose fil
 
 ```yaml
 services:
-  auto-archive:
+  veritas:
     read_only: true
     tmpfs:
       - /tmp:size=128m,mode=1777

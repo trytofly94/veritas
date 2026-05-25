@@ -1,4 +1,4 @@
-# Walking Skeleton — auto-archive
+# Walking Skeleton — veritas
 
 **Phase:** 1
 **Generated:** 2026-05-17

@@ -61,7 +61,7 @@ function vm(
 describe("renderArchiveDetailPage — structure & copy", () => {
   it("renders the page title with escaped filename", () => {
     const html = renderArchiveDetailPage(vm({ original_filename: "doc.pdf" }));
-    expect(html).toContain("<title>doc.pdf — auto-archive</title>");
+    expect(html).toContain("<title>doc.pdf — Veritas</title>");
   });
 
   it("renders the back link to /archive", () => {
@@ -230,14 +230,14 @@ describe("renderNotFoundPage", () => {
     const html = renderNotFoundPage();
     expect(html).toContain("Eintrag nicht gefunden.");
     expect(html).toMatch(/href="\/archive"/);
-    expect(html).toContain("<title>Nicht gefunden — auto-archive</title>");
+    expect(html).toContain("<title>Nicht gefunden — Veritas</title>");
   });
 });
 
 describe("renderErrorPage", () => {
   it("renders the given title in <title> and message in the body, with no <script> tags", () => {
     const html = renderErrorPage("Fehler", "Test message");
-    expect(html).toContain("<title>Fehler — auto-archive</title>");
+    expect(html).toContain("<title>Fehler — Veritas</title>");
     expect(html).toContain("Test message");
     expect(html).not.toMatch(/<script\b/);
   });

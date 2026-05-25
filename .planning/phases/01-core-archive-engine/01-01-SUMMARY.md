@@ -87,7 +87,7 @@ All six files end up with mode `0444` after atomic finalize (D-07). On any TSA /
 
 ```
 POST /api/upload
-  → busboy streams file part → os.tmpdir()/auto-archive-upload-*
+  → busboy streams file part → os.tmpdir()/veritas-upload-*
   → sha256OfFile(tempPath)              [streaming, constant memory]
   → requestTimestamp(sha256Hex, 'dfn'): [openssl ts -query + fetch DFN + pkijs parse genTime]
   → buildMetadata({...})                [D-12: 12 snake_case fields]

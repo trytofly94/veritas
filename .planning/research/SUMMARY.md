@@ -1,6 +1,6 @@
 # Project Research Summary
 
-**Project:** auto-archive
+**Project:** veritas
 **Domain:** Self-hosted tamper-proof file archiving with RFC 3161 timestamps (German civil/labor law evidence use case)
 **Researched:** 2026-05-16
 **Confidence:** HIGH for stack and architecture, HIGH for features, MEDIUM for legal nuance
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-auto-archive is a purpose-built self-hosted evidence archiving system for a single household and small trusted group. It must produce cryptographically verifiable proof that a file existed at a specific moment and has not been modified since — suitable for submission in German civil and labor court proceedings. The system is deployed as a Docker container on an Unraid server, exposed via Cloudflare Tunnel, and accepts file submissions from iOS Shortcuts, n8n webhooks, and a web browser. No equivalent open-source project exists; this is a greenfield build assembling well-established parts.
+veritas is a purpose-built self-hosted evidence archiving system for a single household and small trusted group. It must produce cryptographically verifiable proof that a file existed at a specific moment and has not been modified since — suitable for submission in German civil and labor court proceedings. The system is deployed as a Docker container on an Unraid server, exposed via Cloudflare Tunnel, and accepts file submissions from iOS Shortcuts, n8n webhooks, and a web browser. No equivalent open-source project exists; this is a greenfield build assembling well-established parts.
 
 The recommended stack is **Node.js 22 LTS + TypeScript + Hono.js**, with RFC 3161 timestamping handled by **OpenSSL CLI called via `child_process.execFile()`** — not PKI.js. This resolves the conflict between the Stack researcher (who recommended PKI.js) and the Existing Projects researcher (who found no viable Node.js RFC 3161 client library and explicitly recommended OpenSSL subprocess). OpenSSL ships in every Debian-based container, its output is byte-for-byte standard DER that courts and experts can independently verify, and every reference implementation in the wild uses it. PKI.js reimplements what OpenSSL already does correctly — there is no benefit to the added dependency. The Python option (FastAPI + rfc3161-client) is disqualified by CVE-2025-52556 in rfc3161-client and by the unnecessary language mismatch with the rest of the operator's infrastructure.
 
@@ -96,7 +96,7 @@ The ARCHITECTURE.md research used Python/FastAPI as its reference implementation
 3. **Archive Storage** — `/data/archive/{YYYY}/{MM}/{DD}/{ulid}/` with ULID directory names for lexicographic sort
 4. **Manifest Database** — SQLite + Drizzle ORM; queryable metadata index; SQLite FTS5 for search; rebuilt from filesystem if corrupted
 5. **Archive Browser** — Hono routes serving Alpine.js HTML; server-side cursor pagination
-6. **Cloudflare Tunnel** — cloudflared sidecar; routes `archive.lennart.de` → `http://auto-archive:8000`; no host ports exposed
+6. **Cloudflare Tunnel** — cloudflared sidecar; routes `archive.lennart.de` → `http://veritas:8000`; no host ports exposed
 
 ### Critical Pitfalls
 
@@ -250,7 +250,7 @@ Standard patterns (no additional research needed):
 ### Tertiary (context only)
 - sigstore/timestamp-authority: https://github.com/sigstore/timestamp-authority
 - GitTrustedTimestamps LTV/chaining: https://github.com/mabuware/GitTrustedTimestamps
-- bellingcat/auto-archiver pipeline pattern: https://github.com/bellingcat/auto-archiver
+- bellingcat/veritasr pipeline pattern: https://github.com/bellingcat/veritasr
 
 ---
 *Research completed: 2026-05-16*

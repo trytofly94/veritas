@@ -26,7 +26,7 @@ let bigFixture: string;
 let db: ReturnType<typeof openDb>;
 
 beforeAll(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-e2e-"));
 
   // Set env vars BEFORE calling loadConfig (D-06 fail-fast)
   process.env.DATA_DIR = dataDir;

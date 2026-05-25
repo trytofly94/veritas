@@ -1,5 +1,5 @@
 #!/bin/sh
-# verify.sh — auto-archive bundle integrity verifier
+# verify.sh — Veritas bundle integrity verifier
 #
 # Verifies that:
 #   1. The SHA-256 in original.sha256 still matches the original.<ext> bytes.

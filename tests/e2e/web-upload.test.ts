@@ -22,7 +22,7 @@ let baseUrl: string;
 let dataDir: string;
 
 beforeAll(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-web-upload-e2e-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-web-upload-e2e-"));
 
   process.env.DATA_DIR = dataDir;
   process.env.API_KEY = TEST_API_KEY;

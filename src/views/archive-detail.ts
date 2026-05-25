@@ -99,7 +99,7 @@ export function renderArchiveDetailPage(vm: ArchiveDetailViewModel): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${safeFilename} — auto-archive</title>
+  <title>${safeFilename} — Veritas</title>
   <link rel="stylesheet" href="/static/style.css">
   <!-- archive-detail.js must load before alpine so window.verifyIntegrity / window.copyState exist when Alpine fires alpine:init -->
   <script defer src="/static/archive-detail.js"></script>
@@ -161,7 +161,7 @@ export function renderNotFoundPage(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nicht gefunden — auto-archive</title>
+  <title>Nicht gefunden — Veritas</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>

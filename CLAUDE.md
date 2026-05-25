@@ -1,7 +1,7 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**auto-archive**
+**Veritas**
 
 Ein selbst gehostetes System zur automatisierten, gerichtssicheren Archivierung von Dateien aller Art — mit RFC 3161 Zeitstempeln und SHA-256 Integritätsprüfung. Dateien können per iOS Shortcut, n8n-Webhook oder Web-Upload eingereicht werden und landen manipulationssicher auf dem eigenen Unraid-Server. Für Lennart und Familie/kleines Team.
 

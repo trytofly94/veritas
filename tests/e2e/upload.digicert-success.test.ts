@@ -37,7 +37,7 @@ beforeAll(async () => {
   process.env.TSA_TIMEOUT_MS = "3000";
 
   dataDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "auto-archive-e2e-digicert-"),
+    path.join(os.tmpdir(), "veritas-e2e-digicert-"),
   );
 
   // Set auth env vars BEFORE calling loadConfig (D-06 fail-fast)

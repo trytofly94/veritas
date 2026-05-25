@@ -29,7 +29,7 @@ let validCookie: string;
 
 beforeAll(async () => {
   dataDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "auto-archive-verify-e2e-"),
+    path.join(os.tmpdir(), "veritas-verify-e2e-"),
   );
 
   process.env.DATA_DIR = dataDir;

@@ -28,7 +28,7 @@ let requireSessionApi: typeof import("../../src/middleware/session.js").requireS
 let authOrApiKey: typeof import("../../src/middleware/authOrApiKey.js").authOrApiKey;
 
 beforeAll(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-auth-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-e2e-auth-"));
   dbPath = path.join(dataDir, "manifest.sqlite");
 
   process.env.DATA_DIR = dataDir;

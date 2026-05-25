@@ -93,7 +93,7 @@ function streamMultipart(req: IncomingMessage, maxBodyBytes: number): Promise<Pa
       }
       fileSeen = true;
       filename = info.filename || "upload.bin";
-      tempPath = path.join(os.tmpdir(), `auto-archive-upload-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      tempPath = path.join(os.tmpdir(), `veritas-upload-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
       const out = fs.createWriteStream(tempPath);
       fileStream.on("data", (chunk: Buffer) => {

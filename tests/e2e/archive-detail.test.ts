@@ -31,7 +31,7 @@ let sharedBundleDir: string;
 
 beforeAll(async () => {
   dataDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "auto-archive-detail-e2e-"),
+    path.join(os.tmpdir(), "veritas-detail-e2e-"),
   );
 
   process.env.DATA_DIR = dataDir;

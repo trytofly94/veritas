@@ -32,7 +32,7 @@ let validCookie: string;
 
 beforeAll(async () => {
   dataDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "auto-archive-list-e2e-"),
+    path.join(os.tmpdir(), "veritas-list-e2e-"),
   );
 
   process.env.DATA_DIR = dataDir;
@@ -142,7 +142,7 @@ describe("GET /archive — content", () => {
     expect(body).toContain(
       '<a class="btn btn--secondary" href="/">Datei hochladen</a>',
     );
-    expect(body).toContain("<title>Archiv — auto-archive</title>");
+    expect(body).toContain("<title>Archiv — Veritas</title>");
   });
 
   it("returns 200 + 3 rows in descending created_at order", async () => {

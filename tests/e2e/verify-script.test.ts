@@ -20,7 +20,7 @@ beforeAll(async () => {
   delete process.env.TSA_DIGICERT_ENDPOINT;
   process.env.TSA_TIMEOUT_MS = "10000";
 
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-e2e-verify-"));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-e2e-verify-"));
 
   // Set auth env vars BEFORE calling loadConfig (D-06 fail-fast)
   process.env.DATA_DIR = dataDir;
@@ -76,7 +76,7 @@ async function uploadFixture(): Promise<string> {
  * dir, then chmod +w to allow editing.
  */
 async function copyToWritable(src: string): Promise<string> {
-  const dst = await fsp.mkdtemp(path.join(os.tmpdir(), "auto-archive-bundle-copy-"));
+  const dst = await fsp.mkdtemp(path.join(os.tmpdir(), "veritas-bundle-copy-"));
   for (const entry of await fsp.readdir(src)) {
     await fsp.copyFile(path.join(src, entry), path.join(dst, entry));
   }
