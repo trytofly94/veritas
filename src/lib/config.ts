@@ -13,6 +13,7 @@ export interface AppConfig {
   manifestDbPath: string; // default: "/data/manifest.sqlite"
   dataDir: string;        // default: path.resolve(process.cwd(), "data")
   maxUploadBytes: number; // default: 100 * 1024 * 1024 (100 MiB)
+  cookieSecure: boolean;  // default: true; set COOKIE_SECURE=false for plain-HTTP LAN access
 }
 
 /**
@@ -48,5 +49,6 @@ export function loadConfig(): AppConfig {
     manifestDbPath: process.env.MANIFEST_DB_PATH ?? "/data/manifest.sqlite",
     dataDir: process.env.DATA_DIR ?? path.resolve(process.cwd(), "data"),
     maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 100 * 1024 * 1024),
+    cookieSecure: process.env.COOKIE_SECURE !== "false",
   };
 }

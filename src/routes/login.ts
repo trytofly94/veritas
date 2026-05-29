@@ -63,9 +63,10 @@ export function registerLogin(app: Hono, deps: AppDeps): void {
       deps.config.sessionSecret,
     );
 
+    const secure = deps.config.cookieSecure ? "; Secure" : "";
     c.header(
       "Set-Cookie",
-      `session=${cookie}; HttpOnly; Secure; SameSite=Lax; Path=/`,
+      `session=${cookie}; HttpOnly${secure}; SameSite=Lax; Path=/`,
     );
 
     const next = c.req.query("next");
@@ -74,9 +75,10 @@ export function registerLogin(app: Hono, deps: AppDeps): void {
 
   // POST /logout — clear session cookie (T-02-22)
   app.post("/logout", (c) => {
+    const secure = deps.config.cookieSecure ? "; Secure" : "";
     c.header(
       "Set-Cookie",
-      `session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`,
+      `session=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`,
     );
     return c.redirect("/login", 303);
   });
