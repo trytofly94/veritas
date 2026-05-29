@@ -23,12 +23,19 @@ export function renderUploadPage({ apiKey }: { apiKey: string }): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Veritas</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=2">
   <!-- upload.js must load before alpine so window.uploadForm exists when Alpine evaluates x-data -->
   <script defer src="/static/upload.js"></script>
   <script defer src="/static/alpine.min.js"></script>
 </head>
 <body>
+  <nav class="nav">
+    <a class="nav__brand" href="/">Veritas</a>
+    <div class="nav__links">
+      <a class="nav__link nav__link--active" href="/">Hochladen</a>
+      <a class="nav__link" href="/archive">Archiv</a>
+    </div>
+  </nav>
   <main class="page" x-data='uploadForm(${escapedKey})'>
 
     <!-- Error banner — shown above the form on XHR errors -->

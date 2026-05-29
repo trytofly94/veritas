@@ -105,9 +105,16 @@ export function renderArchiveListPage({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Archiv — Veritas</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
+  <nav class="nav">
+    <a class="nav__brand" href="/">Veritas</a>
+    <div class="nav__links">
+      <a class="nav__link" href="/">Hochladen</a>
+      <a class="nav__link nav__link--active" href="/archive">Archiv</a>
+    </div>
+  </nav>
   <main class="page">
     <div class="archive-page">
       <header class="archive-page__header">
