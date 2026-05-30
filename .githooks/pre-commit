@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Veritas secret scanner — gitleaks pre-commit hook
+# Tracked in .githooks/ — activate with: git config core.hooksPath .githooks
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "[warn] gitleaks not found — skipping secret scan."
+  echo "       Install with: brew install gitleaks"
+  echo "       Then re-run: git config core.hooksPath .githooks"
+  exit 0
+fi
+
+gitleaks protect --staged --config .gitleaks.toml --redact
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "[error] gitleaks found secrets in staged files. Commit blocked."
+  echo "        Fix the issues above, then commit again."
+fi
+exit $STATUS
