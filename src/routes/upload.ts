@@ -255,7 +255,16 @@ export function registerUpload(app: Hono, deps: AppDeps): void {
         return errorResponse(c, 500, "INTERNAL_ERROR", "Unbekannter Fehler.");
       }
 
-      return c.json({ id, bundle_path: bundlePath }, 201);
+      return c.json({
+        id,
+        bundle_path: bundlePath,
+        original_filename: parsed.filename,
+        sha256: sha256Hex,
+        tsa_provider: tsa.provider,
+        tsa_attested_at: tsa.attestedAt,
+        tsa_status: "verified",
+        archive_url: `/archive/${id}`,
+      }, 201);
     } catch (err) {
       // D-05: never leave a partial bundle. writeBundle handles its own tmp
       // cleanup; we still need to unlink the upload's temp file if it was
