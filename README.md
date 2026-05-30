@@ -1,5 +1,7 @@
 # Veritas
 
+> **Hinweis:** Dieses Projekt wurde mit KI-Unterstützung (Claude) erstellt. Nutzung auf eigene Gefahr.
+
 Self-hosted, court-grade file archive. Every submitted file is hashed
 (SHA-256) and timestamped via RFC 3161 (DFN → FreeTSA → DigiCert fallback)
 into a tamper-proof bundle on a bind-mounted volume. A password-protected
