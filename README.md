@@ -223,6 +223,33 @@ npm run build         # tsc → dist/
 `.env.local` mirrors the compose env block (`API_KEY`, `SESSION_SECRET`,
 `ADMIN_PASSWORD`, `DATA_DIR`, `MANIFEST_DB_PATH`).
 
+## Secret Scanning
+
+This repository uses [gitleaks](https://github.com/gitleaks/gitleaks) to prevent secrets and personal identifiers from being committed.
+
+### Activate the pre-commit hook (one-time setup)
+
+```bash
+brew install gitleaks          # macOS
+git config core.hooksPath .githooks
+```
+
+The hook runs `gitleaks protect --staged` before every commit. If gitleaks is not installed it warns and allows the commit — install it to get full protection.
+
+### Custom rules
+
+`.gitleaks.toml` adds project-specific patterns on top of gitleaks defaults:
+
+| Rule | Pattern |
+|------|---------|
+| `personal-lan-ip` | `192.168.178.x` LAN addresses |
+| `personal-domain` | `*.lennart.de` domains |
+| `personal-username` | `trytofly94` |
+
+### CI
+
+GitHub Actions runs `gitleaks/gitleaks-action@v2` on every push and pull request as a backstop.
+
 ## Project layout
 
 ```
