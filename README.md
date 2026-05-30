@@ -271,5 +271,3 @@ scripts/                   Operator scripts (smoke-container.sh)
 Dockerfile                 Multi-stage build → node:22-bookworm-slim runtime
 docker-compose.yml         Single-service compose stack (container_name=veritas)
 ```
-
-> **Disclaimer:** This project was built with AI assistance (Claude by Anthropic). Use at your own risk.
