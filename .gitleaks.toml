@@ -1,0 +1,24 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "personal-lan-ip"
+description = "Personal LAN subnet (192.168.178.x)"
+regex = '''192\.168\.178\.\d+'''
+
+[[rules]]
+id = "personal-domain"
+description = "Personal domain lennart.de"
+regex = '''(^|[^a-z])\.?lennart\.de'''
+
+[[rules]]
+id = "personal-username"
+description = "Personal GitHub username"
+regex = '''trytofly94'''
+
+[allowlist]
+description = "Known false positives"
+paths = [
+  "tests/unit/archive-detail-view.test.ts",
+  "tests/e2e/upload.digicert-success.test.ts"
+]
