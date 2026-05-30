@@ -20,5 +20,6 @@ regex = '''trytofly94'''
 description = "Known false positives"
 paths = [
   "tests/unit/archive-detail-view.test.ts",
-  "tests/e2e/upload.digicert-success.test.ts"
+  "tests/e2e/upload.digicert-success.test.ts",
+  "README.md"
 ]
