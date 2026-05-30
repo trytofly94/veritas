@@ -1,7 +1,5 @@
 # Veritas
 
-> **Hinweis:** Dieses Projekt wurde mit KI-Unterstützung (Claude) erstellt. Nutzung auf eigene Gefahr.
-
 Self-hosted, court-grade file archive. Every submitted file is hashed
 (SHA-256) and timestamped via RFC 3161 (DFN → FreeTSA → DigiCert fallback)
 into a tamper-proof bundle on a bind-mounted volume. A password-protected
@@ -271,3 +269,5 @@ scripts/                   Operator scripts (smoke-container.sh)
 Dockerfile                 Multi-stage build → node:22-bookworm-slim runtime
 docker-compose.yml         Single-service compose stack (container_name=veritas)
 ```
+
+> **Disclaimer:** This project was built with AI assistance (Claude by Anthropic). Use at your own risk.
