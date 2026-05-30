@@ -107,83 +107,67 @@ Unauthenticated requests to a session-protected page get a 303 to
 `{error:true, code:"UNAUTHORIZED"}`. Wrong/missing `X-API-Key` also gets a
 401 envelope (timing-safe comparison).
 
-## Deploy to Unraid + Cloudflare Tunnel
+## Deployment
 
-The production target is the Unraid server at `192.168.178.30`, exposed
-externally through Cloudflare Tunnel. The image is identical to the local
-build — only the bind-mount path and the secret material change.
-
-### One-time procedure
+### Docker Compose (any Linux host)
 
 ```sh
-# 1. On your laptop — push the repo to Unraid's appdata share.
-rsync -avz --delete \
-  --exclude node_modules --exclude data --exclude .git --exclude .env \
-  ./ root@192.168.178.30:/mnt/user/appdata/veritas/
-
-# 2. SSH in, drop a real .env file in place, and start.
-ssh root@192.168.178.30
-cd /mnt/user/appdata/veritas
+# 1. Clone and create your .env file.
+git clone https://github.com/your-org/veritas.git
+cd veritas
 mkdir -p data
 cat > .env <<EOF
-API_KEY=<paste-strong-random-32+-bytes>
-SESSION_SECRET=<paste-strong-random-32+-bytes>
-ADMIN_PASSWORD=<paste-passphrase>
+API_KEY=<strong-random-hex-32+-bytes>
+SESSION_SECRET=<strong-random-hex-32+-bytes>
+ADMIN_PASSWORD=<passphrase>
 EOF
 chmod 600 .env
+
+# 2. Build and start.
 docker compose build
 docker compose up -d
 docker compose logs --tail=50 veritas     # confirm "listening on …:3700"
 ```
 
-### Cloudflare Tunnel exposure
+### Reverse proxy / HTTPS
 
-The compose file binds port 3700 to `127.0.0.1:3700` only — that's
-intentional. Expose externally by pointing a Cloudflare Tunnel ingress
-rule at `http://localhost:3700` on the same Unraid host. The browser UI
-runs over Cloudflare's HTTPS terminator, which is what the session cookie's
-`Secure` flag expects.
+The container binds port 3700. Put a reverse proxy (nginx, Caddy, Traefik, …)
+in front to terminate TLS. Set `COOKIE_SECURE=true` (the default) when
+serving over HTTPS. For plain-HTTP LAN access set `COOKIE_SECURE=false` — the
+session cookie will otherwise be silently dropped by the browser.
 
-> **LAN smoke-test caveat.** The session cookie is currently set with
-> `Secure` unconditionally. That means logins over plain HTTP — e.g.
-> directly to `http://192.168.178.30:3700/login` over LAN — will fail
-> silently (browser drops the cookie). API submissions still work over LAN
-> because they use `X-API-Key`, not cookies. Track / fix via a
-> `COOKIE_SECURE` env var (see `.planning/v1.0-MILESTONE-AUDIT.md` tech
-> debt).
+API requests (`X-API-Key`) work over both HTTP and HTTPS because they don't
+rely on cookies.
 
-### Production smoke test (from your laptop)
+### Smoke test
 
 ```sh
-# Submit via X-API-Key (curl can stay on LAN here — only cookies are blocked).
+export API_KEY=<your-key>
+
+# Upload a test file.
 curl -H "X-API-Key: $API_KEY" \
-  -F file=@tests/fixtures/hello.txt -F label=unraid-smoke \
-  http://192.168.178.30:3700/api/upload
+  -F file=@tests/fixtures/hello.txt -F label=smoke \
+  http://localhost:3700/api/upload
 # Capture the returned id.
 
-# SSH back in and verify the bundle on the real Unraid filesystem.
-ssh root@192.168.178.30
-cd /mnt/user/appdata/veritas
-ls -la data/<id>/                              # expect 7 files
-cat data/<id>/metadata.json | jq .tsa_provider # records which TSA signed
-bash data/<id>/verify.sh                       # expect VERIFICATION SUCCESS
+# Verify the bundle on disk.
+ls -la data/<id>/                               # expect 7 files
+cat data/<id>/metadata.json | jq .tsa_provider  # which TSA signed
+bash data/<id>/verify.sh                        # expect VERIFICATION SUCCESS
 
 # Bundle-isolation check — nothing should live inside the container.
 docker compose exec -T veritas sh -c '[ ! -e /app/data ]' && echo "isolated"
 ```
 
-### Unraid-specific notes
+### Notes
 
-- Bundle files inherit uid 10001 from the container's `app` user. If you
-  want Unraid's share user to own them, run `chown -R 99:100 ./data`
-  (cosmetic — bundles become immutable at mode `444` regardless).
-- Outbound HTTPS to DFN (`zeitstempel.dfn.de`), FreeTSA (`freetsa.org`),
-  and DigiCert (`timestamp.digicert.com`) must work from inside the Docker
-  bridge. If DFN is unreachable, the fallback chain transparently picks
-  FreeTSA then DigiCert — `metadata.tsa_provider` records which one
-  actually signed.
-- The container declares `restart: unless-stopped`, so it survives
-  reboots automatically once started.
+- Bundle files are written as uid 10001 (the container's non-root `app` user).
+  If your host user differs, run `chown -R $(id -u):$(id -g) ./data`.
+- Outbound HTTPS to DFN (`zeitstempel.dfn.de`), FreeTSA (`freetsa.org`), and
+  DigiCert (`timestamp.digicert.com`) must be reachable from inside the
+  container. If DFN is unreachable the fallback chain picks FreeTSA then
+  DigiCert — `metadata.tsa_provider` records which one actually signed.
+- `restart: unless-stopped` keeps the container running across host reboots.
 
 ## What's inside a bundle
 

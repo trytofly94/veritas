@@ -34,8 +34,7 @@ RUN apt-get update \
       dpkg-query -W -f='${Package}=${Version}\n' openssl ca-certificates; \
     } > /etc/veritas-build
 
-LABEL org.opencontainers.image.title="Veritas" \
-      org.opencontainers.image.source="https://github.com/trytofly94/veritas"
+LABEL org.opencontainers.image.title="Veritas"
 
 # Non-root user (T-03-01). uid 10001 is documented in README for Unraid chown notes.
 RUN groupadd --system --gid 10001 app \
